@@ -1,0 +1,222 @@
+export type Lang = 'zh' | 'ja' | 'en';
+
+const zh = {
+  siteName: 'RunIPS',
+  tagline: '非官方情报小站',
+  nav: {
+    home: '教授列表',
+    ranking: '人气夯拉榜',
+  },
+  hero: {
+    title: 'RunIP —— 非官方情报小站',
+    desc: '本站目的是建立方便 IPS 的学生们交流分享情报的平台。榜单只为找乐子，无对立无炒作，也不代表教授和研究室客观特点。批评、建议和合作欢迎致信：itakuhan@asagi.waseda.jp',
+  },
+  tabs: {
+    all: '全部',
+  },
+  division: {
+    '情報アーキテクチャ': '情報アーキテクチャ',
+    '生産システム': '生産システム',
+    '集積システム': '集積システム',
+  },
+  stats: {
+    citations: '引用',
+    search: '搜索',
+    clicks: '点击',
+    score: '综合分',
+    votes: '票',
+  },
+  home: {
+    title: '教授列表',
+    desc: '按站内点击量排序，点击卡片可查看风评图并投票',
+    updated: '最后更新',
+  },
+  ranking: {
+    title: '教授人气夯拉榜',
+    desc: '综合分 = 谷歌学术引用 · 互联网搜索量（教授姓名+研究室）· 本站点击量 加权计算',
+  },
+  common: {
+    loading: '加载中...',
+    empty: '该分野暂无数据',
+    labUnknown: '研究室未公开',
+    updated: '最后更新',
+    logout: '退出登录',
+  },
+  detail: {
+    back: '← 返回榜单',
+    hexagonTitle: '教师风评图',
+    myRating: '展示你的评分',
+    avgRating: '基于 {n} 位同学的投票平均值',
+    noVotes: '暂无投票数据',
+    voteTitle: '投票',
+    voted: '已投票（可修改）',
+    loginToVote: '登录后可参与投票',
+    loginWithGoogle: '使用 Google 登录',
+    submit: '提交投票',
+    update: '更新投票',
+    submitting: '提交中...',
+    success: '投票成功 ✅',
+    updatedVote: '投票已更新 ✅',
+    failed: '投票失败，请稍后重试',
+    notFound: '教授不存在',
+  },
+  login: {
+    welcome: '欢迎回来',
+    subtitle: '登录 RunIPS 参与教授投票',
+    google: '使用 Google 账号登录',
+    redirecting: '正在跳转 Google...',
+    privacy: '登录仅用于投票身份验证与防刷票\n不会收集你的其他信息',
+  },
+  footer: {
+    line: 'RunIPS — 早稻田学生非官方情报小站',
+  },
+  axis: ['一', '二', '三', '四', '五', '六'],
+};
+
+const ja: typeof zh = {
+  siteName: 'RunIPS',
+  tagline: '非公式情報サイト',
+  nav: {
+    home: '教授一覧',
+    ranking: '人気ランキング',
+  },
+  hero: {
+    title: 'RunIP —— 非公式情報サイト',
+    desc: 'IPSの学生同士が気軽に情報交換できる場を作るのが目的です。ランキングはあくまでお遊び。対立も煽りもなく、教授や研究室の客観的な特徴を表すものではありません。ご意見・ご提案・コラボのご連絡は：itakuhan@asagi.waseda.jp',
+  },
+  tabs: {
+    all: 'すべて',
+  },
+  division: {
+    '情報アーキテクチャ': '情報アーキテクチャ',
+    '生産システム': '生産システム',
+    '集積システム': '集積システム',
+  },
+  stats: {
+    citations: '引用',
+    search: '検索',
+    clicks: 'クリック',
+    score: '総合点',
+    votes: '票',
+  },
+  home: {
+    title: '教授一覧',
+    desc: 'サイト内クリック数順。カードをクリックして風評図と投票へ',
+    updated: '最終更新',
+  },
+  ranking: {
+    title: '教授人気ランキング',
+    desc: '総合点 = グーグルスカラー引用 · ネット検索量（教授名+研究室）· サイト内クリック の加重合計',
+  },
+  common: {
+    loading: '読み込み中...',
+    empty: 'この分野のデータはまだありません',
+    labUnknown: '研究室非公開',
+    updated: '最終更新',
+    logout: 'ログアウト',
+  },
+  detail: {
+    back: '← ランキングへ戻る',
+    hexagonTitle: '教授風評図',
+    myRating: 'あなたの評価を表示中',
+    avgRating: '{n} 人の投票平均に基づく',
+    noVotes: '投票データはまだありません',
+    voteTitle: '投票',
+    voted: '投票済み（変更可）',
+    loginToVote: 'ログインして投票',
+    loginWithGoogle: 'Googleでログイン',
+    submit: '投票する',
+    update: '投票を更新',
+    submitting: '送信中...',
+    success: '投票成功 ✅',
+    updatedVote: '投票を更新しました ✅',
+    failed: '投票に失敗しました。もう一度お試しください',
+    notFound: '教授が見つかりません',
+  },
+  login: {
+    welcome: 'おかえりなさい',
+    subtitle: 'RunIPSにログインして教授に投票',
+    google: 'Googleアカウントでログイン',
+    redirecting: 'Googleへ移動中...',
+    privacy: 'ログインは投票の本人確認・重複防止のため\n他の情報は収集しません',
+  },
+  footer: {
+    line: 'RunIPS — 早稲田の学生による非公式情報サイト',
+  },
+  axis: ['一', '二', '三', '四', '五', '六'],
+};
+
+const en: typeof zh = {
+  siteName: 'RunIPS',
+  tagline: 'Unofficial Info Hub',
+  nav: {
+    home: 'Professors',
+    ranking: 'Popularity Ranking',
+  },
+  hero: {
+    title: 'RunIP — an unofficial info hub',
+    desc: 'A platform for IPS students to connect and share knowledge. The rankings are just for fun — no rivalry, no hype, and they don\'t reflect professors or labs objectively. Feedback, ideas & collaboration: itakuhan@asagi.waseda.jp',
+  },
+  tabs: {
+    all: 'All',
+  },
+  division: {
+    '情報アーキテクチャ': 'Information Architecture',
+    '生産システム': 'Production Systems',
+    '集積システム': 'Integrated Systems',
+  },
+  stats: {
+    citations: 'Citations',
+    search: 'Searches',
+    clicks: 'Clicks',
+    score: 'Score',
+    votes: 'votes',
+  },
+  home: {
+    title: 'Professors',
+    desc: 'Sorted by on-site clicks. Tap a card for the review chart & voting',
+    updated: 'Updated',
+  },
+  ranking: {
+    title: 'Professor Popularity Ranking',
+    desc: 'Score = weighted sum of Google Scholar citations · web searches (name + lab) · on-site clicks',
+  },
+  common: {
+    loading: 'Loading...',
+    empty: 'No data in this division',
+    labUnknown: 'Lab not disclosed',
+    updated: 'Updated',
+    logout: 'Log out',
+  },
+  detail: {
+    back: '← Back to ranking',
+    hexagonTitle: 'Professor Review',
+    myRating: 'Showing your rating',
+    avgRating: 'Based on {n} votes',
+    noVotes: 'No votes yet',
+    voteTitle: 'Vote',
+    voted: 'Voted (editable)',
+    loginToVote: 'Log in to vote',
+    loginWithGoogle: 'Sign in with Google',
+    submit: 'Submit vote',
+    update: 'Update vote',
+    submitting: 'Submitting...',
+    success: 'Vote submitted ✅',
+    updatedVote: 'Vote updated ✅',
+    failed: 'Vote failed, please retry',
+    notFound: 'Professor not found',
+  },
+  login: {
+    welcome: 'Welcome back',
+    subtitle: 'Sign in to RunIPS to vote',
+    google: 'Continue with Google',
+    redirecting: 'Redirecting to Google...',
+    privacy: 'Login is only used to verify votes & prevent abuse\nNo other data is collected',
+  },
+  footer: {
+    line: 'RunIPS — an unofficial info hub by Waseda students',
+  },
+  axis: ['1', '2', '3', '4', '5', '6'],
+};
+
+export const translations: Record<Lang, typeof zh> = { zh, ja, en };

@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/components/AuthProvider";
+import { LanguageProvider } from "@/i18n/LanguageProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RunIPS — 早稻田教授人气榜",
-  description: "教授人气夯拉榜、风评图与投票。基于谷歌学术引用、搜索量与站内点击的综合排名。",
+  title: "RunIPS — 非官方情报小站",
+  description: "早稻田大学 IPS 学生交流分享情报的平台。教授列表、人气夯拉榜与风评投票。",
 };
 
 export default function RootLayout({
@@ -31,11 +32,13 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthProvider>
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

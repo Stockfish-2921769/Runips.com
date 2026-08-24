@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import ProfessorHexagon from '@/components/ProfessorHexagon';
 import { useAuth } from '@/components/AuthProvider';
-import { Professor, ProfessorRatingAvg, VoteRow, AXIS_LABELS } from '@/types';
+import { useI18n } from '@/i18n/LanguageProvider';
+import { Professor, ProfessorRatingAvg, VoteRow } from '@/types';
+import { PROFESSOR_EN } from '@/data/professorNames';
 import { supabase } from '@/lib/supabase';
 
 const RATING_SCALE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -12,6 +14,7 @@ const RATING_SCALE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 export default function ProfessorDetail({ id }: { id: string }) {
   const professorId = Number(id);
   const { user, loading: authLoading } = useAuth();
+  const { lang, t } = useI18n();
 
   const [professor, setProfessor] = useState<Professor | null>(null);
   const [ratings, setRatings] = useState<ProfessorRatingAvg | null>(null);
@@ -103,7 +106,7 @@ export default function ProfessorDetail({ id }: { id: string }) {
     }
 
     if (ok) {
-      setNotice(myVote ? '投票已更新 ✅' : '投票成功 ✅');
+      setNotice(myVote ? t('detail.updatedVote') : t('detail.success'));
       const { data } = await supabase
         .from('professor_ratings_avg')
         .select('*')
@@ -115,23 +118,28 @@ export default function ProfessorDetail({ id }: { id: string }) {
         setScores([r.opt_1_avg ?? 0, r.opt_2_avg ?? 0, r.opt_3_avg ?? 0, r.opt_4_avg ?? 0, r.opt_5_avg ?? 0, r.opt_6_avg ?? 0]);
       }
     } else {
-      setNotice('投票失败，请稍后重试');
+      setNotice(t('detail.failed'));
     }
     setSubmitting(false);
   };
 
   if (pageLoading) {
-    return <div className="max-w-4xl mx-auto px-4 py-20 text-center text-gray-400">加载中...</div>;
+    return <div className="max-w-4xl mx-auto px-4 py-20 text-center text-gray-400">{t('common.loading')}</div>;
   }
 
   if (!professor) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">教授不存在</h1>
-        <Link href="/" className="text-blue-600 hover:underline">返回榜单</Link>
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">{t('detail.notFound')}</h1>
+        <Link href="/" className="text-blue-600 hover:underline">{t('detail.back')}</Link>
       </div>
     );
   }
+
+  const en = PROFESSOR_EN[professor.id];
+  const displayName = lang === 'en' && en ? en.nameEn : professor.name;
+  const displayLab = lang === 'en' && en?.labEn ? en.labEn : professor.lab || t('common.labUnknown');
+  const axisLabels = [...t('axis')];
 
   const hexagonValues = myVote
     ? [myVote.opt_1, myVote.opt_2, myVote.opt_3, myVote.opt_4, myVote.opt_5, myVote.opt_6]
@@ -140,22 +148,22 @@ export default function ProfessorDetail({ id }: { id: string }) {
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
       <div className="mb-4">
-        <Link href="/" className="text-sm text-blue-600 hover:underline">← 返回人气榜</Link>
+        <Link href="/" className="text-sm text-blue-600 hover:underline">{t('detail.back')}</Link>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-100 p-6 mb-6">
         <div className="flex items-start gap-4">
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
-            {professor.name[0]}
+            {displayName[0]}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{professor.name}</h1>
-            <p className="text-sm text-gray-500 mt-1">{professor.lab || '研究室未公开'}</p>
+            <h1 className="text-2xl font-bold text-gray-900">{displayName}</h1>
+            <p className="text-sm text-gray-500 mt-1">{displayLab}</p>
             <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded">{professor.division}</span>
-              <span>📖 引用 {professor.scholar_citations}</span>
-              <span>🔍 搜索 {professor.search_count}</span>
-              <span>👆 点击 {professor.click_count}</span>
+              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded">{t(`division.${professor.division}` as never) || professor.division}</span>
+              <span>📖 {t('stats.citations')} {professor.scholar_citations}</span>
+              <span>🔍 {t('stats.search')} {professor.search_count}</span>
+              <span>👆 {t('stats.clicks')} {professor.click_count}</span>
             </div>
           </div>
         </div>
@@ -163,13 +171,13 @@ export default function ProfessorDetail({ id }: { id: string }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="bg-white rounded-xl border border-gray-100 p-6 flex flex-col items-center">
-          <h2 className="font-semibold text-gray-900 mb-1">教师风评图</h2>
+          <h2 className="font-semibold text-gray-900 mb-1">{t('detail.hexagonTitle')}</h2>
           <p className="text-xs text-gray-400 mb-4">
-            {myVote ? '展示你的评分' : ratings?.vote_count ? `基于 ${ratings.vote_count} 位同学的投票平均值` : '暂无投票数据'}
+            {myVote ? t('detail.myRating') : ratings?.vote_count ? t('detail.avgRating', { n: ratings.vote_count }) : t('detail.noVotes')}
           </p>
-          <ProfessorHexagon values={hexagonValues} labels={[...AXIS_LABELS]} size={220} />
+          <ProfessorHexagon values={hexagonValues} labels={axisLabels} size={220} />
           <div className="grid grid-cols-3 gap-x-6 gap-y-1 mt-4">
-            {AXIS_LABELS.map((label, i) => (
+            {axisLabels.map((label, i) => (
               <div key={label} className="flex items-center justify-between gap-2 text-xs">
                 <span className="text-gray-500">{label}</span>
                 <span className="font-semibold text-gray-800">{(hexagonValues[i] ?? 0).toFixed(1)}</span>
@@ -180,21 +188,21 @@ export default function ProfessorDetail({ id }: { id: string }) {
 
         <div className="bg-white rounded-xl border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-900">投票</h2>
-            {myVote && <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded">已投票（可修改）</span>}
+            <h2 className="font-semibold text-gray-900">{t('detail.voteTitle')}</h2>
+            {myVote && <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded">{t('detail.voted')}</span>}
           </div>
 
           {!authLoading && !user ? (
             <div className="text-center py-10">
-              <p className="text-gray-500 mb-4">登录后可参与投票</p>
+              <p className="text-gray-500 mb-4">{t('detail.loginToVote')}</p>
               <Link href="/login" className="inline-block px-5 py-2 bg-blue-600 text-white rounded-full text-sm hover:bg-blue-700 transition-colors">
-                使用 Google 登录
+                {t('detail.loginWithGoogle')}
               </Link>
             </div>
           ) : (
             <>
               <div className="space-y-3">
-                {AXIS_LABELS.map((label, i) => (
+                {axisLabels.map((label, i) => (
                   <div key={label} className="flex items-center gap-3">
                     <span className="w-6 text-sm font-medium text-gray-600">{label}</span>
                     <div className="flex gap-1 flex-1">
@@ -218,7 +226,7 @@ export default function ProfessorDetail({ id }: { id: string }) {
               </div>
 
               {notice && (
-                <p className={`text-sm mt-4 text-center ${notice.includes('失败') ? 'text-red-600' : 'text-green-600'}`}>{notice}</p>
+                <p className={`text-sm mt-4 text-center ${notice.includes('失敗') || notice.includes('失败') || notice.includes('fail') ? 'text-red-600' : 'text-green-600'}`}>{notice}</p>
               )}
 
               <button
@@ -226,7 +234,7 @@ export default function ProfessorDetail({ id }: { id: string }) {
                 disabled={submitting || scores.some((s) => s <= 0)}
                 className="w-full mt-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {submitting ? '提交中...' : myVote ? '更新投票' : '提交投票'}
+                {submitting ? t('detail.submitting') : myVote ? t('detail.update') : t('detail.submit')}
               </button>
             </>
           )}
