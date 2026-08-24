@@ -28,7 +28,7 @@ export default function ProfessorHexagon({
     const levels = 5;
 
     const hasData = values.some((v) => v > 0);
-    const clamped = values.map((v) => Math.min(Math.max(v, 0), 10));
+    const clamped = values.map((v) => Math.min(Math.max(v, 0), 6));
 
     ctx.clearRect(0, 0, size, size);
 
@@ -61,7 +61,7 @@ export default function ProfessorHexagon({
       ctx.beginPath();
       for (let j = 0; j < 6; j++) {
         const angle = (Math.PI * 2 * j) / 6 - Math.PI / 2;
-        const r = (radius * clamped[j]) / 10;
+        const r = (radius * clamped[j]) / 6;
         const x = cx + r * Math.cos(angle);
         const y = cy + r * Math.sin(angle);
         j === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
@@ -75,7 +75,7 @@ export default function ProfessorHexagon({
 
       for (let j = 0; j < 6; j++) {
         const angle = (Math.PI * 2 * j) / 6 - Math.PI / 2;
-        const r = (radius * clamped[j]) / 10;
+        const r = (radius * clamped[j]) / 6;
         ctx.beginPath();
         ctx.arc(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 3.5, 0, Math.PI * 2);
         ctx.fillStyle = '#3b82f6';

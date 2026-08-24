@@ -9,7 +9,7 @@ import { Professor, ProfessorRatingAvg, VoteRow } from '@/types';
 import { PROFESSOR_EN } from '@/data/professorNames';
 import { supabase } from '@/lib/supabase';
 
-const RATING_SCALE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const RATING_SCALE = [1, 2, 3, 4, 5, 6];
 const PUBLIC_DIMS = 3;
 
 export default function ProfessorDetail({ id }: { id: string }) {

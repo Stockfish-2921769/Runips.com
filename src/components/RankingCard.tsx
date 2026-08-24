@@ -22,7 +22,7 @@ interface RankingCardProps {
 }
 
 export default function RankingCard({ item, rank, mode = 'clicks', ratings = [] }: RankingCardProps) {
-  const { lang, t } = useI18n();
+  const { lang, t, dimensions } = useI18n();
   const divisionColor = divisionColors[item.division] || 'bg-gray-100 text-gray-700';
   const divisionLabel = t(`division.${item.division}` as never) || item.division;
   const en = PROFESSOR_EN[item.id];
@@ -56,6 +56,16 @@ export default function RankingCard({ item, rank, mode = 'clicks', ratings = [] 
           <span>📖 {item.scholar_citations}</span>
           <span>🔍 {item.search_count}</span>
           <span>👆 {item.click_count}</span>
+        </div>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-x-3 gap-y-1 mt-2">
+          {dimensions.map((d, i) => (
+            <div key={d.label} className="flex items-baseline justify-between gap-1 min-w-0" title={d.label}>
+              <span className="text-[10px] text-gray-400 truncate">{i + 1}.{d.label}</span>
+              <span className={`text-xs font-bold ${hasRatings ? 'text-blue-600' : 'text-gray-300'}`}>
+                {hasRatings ? (ratings[i] ?? 0).toFixed(1) : '—'}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 
