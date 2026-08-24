@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { ProfessorRankingItem } from '@/types';
 import { PROFESSOR_EN } from '@/data/professorNames';
 import { useI18n } from '@/i18n/LanguageProvider';
-import ProfessorHexagon from '@/components/ProfessorHexagon';
 
 const divisionColors: Record<string, string> = {
   '情報アーキテクチャ': 'bg-blue-100 text-blue-700',
@@ -88,11 +87,6 @@ export default function RankingCard({ item, rank, mode = 'clicks', ratings = [] 
             <div className="text-xs text-gray-400">{t('stats.score')}</div>
           </div>
         )}
-      </div>
-
-      <div className="flex-shrink-0 hidden md:block">
-        <ProfessorHexagon values={ratings} labels={['1', '2', '3', '4', '5', '6']} size={84} />
-        {!hasRatings && <div className="text-center text-[10px] text-gray-300 mt-0.5">{t('detail.noVotes')}</div>}
       </div>
     </Link>
   );
