@@ -8,8 +8,8 @@ const zh = {
     ranking: '人气夯拉榜',
   },
   hero: {
-    title: 'RunIP —— 非官方情报小站',
-    desc: '本站目的是建立方便 IPS 的学生们交流分享情报的平台。榜单只为找乐子，无对立无炒作，也不代表教授和研究室客观特点。批评、建议和合作欢迎致信：itakuhan@asagi.waseda.jp',
+    title: 'RunIPS',
+    desc: '本站目的是打破信息障壁，增加互动，建立方便 IPS 的学生们交流分享情报的平台。榜单只为找乐子，无对立无炒作，不代表教授和研究室客观实际。\n批评、建议和合作欢迎致信：itakuhan@asagi.waseda.jp',
   },
   tabs: {
     all: '全部',
@@ -91,8 +91,8 @@ const ja: typeof zh = {
     ranking: '人気ランキング',
   },
   hero: {
-    title: 'RunIP —— 非公式情報サイト',
-    desc: 'IPSの学生同士が気軽に情報交換できる場を作るのが目的です。ランキングはあくまでお遊び。対立も煽りもなく、教授や研究室の客観的な特徴を表すものではありません。ご意見・ご提案・コラボのご連絡は：itakuhan@asagi.waseda.jp',
+    title: 'RunIPS',
+    desc: '情報の壁を壊し、交流を増やし、IPSの学生が気軽に情報を共有できるプラットフォームを目指しています。ランキングはあくまでお遊び。対立も煽りもなく、教授や研究室の客観的な実態を表すものではありません。\nご意見・ご提案・コラボのご連絡は：itakuhan@asagi.waseda.jp',
   },
   tabs: {
     all: 'すべて',
@@ -174,8 +174,8 @@ const en: typeof zh = {
     ranking: 'Popularity Ranking',
   },
   hero: {
-    title: 'RunIP — an unofficial info hub',
-    desc: 'A platform for IPS students to connect and share knowledge. The rankings are just for fun — no rivalry, no hype, and they don\'t reflect professors or labs objectively. Feedback, ideas & collaboration: itakuhan@asagi.waseda.jp',
+    title: 'RunIPS',
+    desc: 'Breaking down information barriers, fostering interaction, and building a platform for IPS students to share knowledge. The rankings are just for fun — no rivalry, no hype, and they don\'t reflect the objective reality of professors or labs.\nFeedback, ideas & collaboration: itakuhan@asagi.waseda.jp',
   },
   tabs: {
     all: 'All',
