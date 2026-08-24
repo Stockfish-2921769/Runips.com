@@ -33,7 +33,7 @@ const zh = {
   },
   ranking: {
     title: '教授人气夯拉榜',
-    desc: '综合分 = 谷歌学术引用 · 互联网搜索量（教授姓名+研究室）· 本站点击量 加权计算',
+    desc: '综合分 = 学术引用（OpenAlex）· 网络搜索热度（教授姓名+研究室）· 本站点击量 加权计算',
   },
   common: {
     loading: '加载中...',
@@ -41,6 +41,7 @@ const zh = {
     labUnknown: '研究室未公开',
     updated: '最后更新',
     logout: '退出登录',
+    tbd: '未定',
   },
   detail: {
     back: '← 返回榜单',
@@ -116,7 +117,7 @@ const ja: typeof zh = {
   },
   ranking: {
     title: '教授人気ランキング',
-    desc: '総合点 = グーグルスカラー引用 · ネット検索量（教授名+研究室）· サイト内クリック の加重合計',
+    desc: '総合点 = 学術引用（OpenAlex）· ネット検索人気（教授名+研究室）· サイト内クリック の加重合計',
   },
   common: {
     loading: '読み込み中...',
@@ -124,6 +125,7 @@ const ja: typeof zh = {
     labUnknown: '研究室非公開',
     updated: '最終更新',
     logout: 'ログアウト',
+    tbd: '未定',
   },
   detail: {
     back: '← ランキングへ戻る',
@@ -199,7 +201,7 @@ const en: typeof zh = {
   },
   ranking: {
     title: 'Professor Popularity Ranking',
-    desc: 'Score = weighted sum of Google Scholar citations · web searches (name + lab) · on-site clicks',
+    desc: 'Score = weighted sum of academic citations (OpenAlex) · web search heat (name + lab) · on-site clicks',
   },
   common: {
     loading: 'Loading...',
@@ -207,6 +209,7 @@ const en: typeof zh = {
     labUnknown: 'Lab not disclosed',
     updated: 'Updated',
     logout: 'Log out',
+    tbd: 'TBD',
   },
   detail: {
     back: '← Back to ranking',

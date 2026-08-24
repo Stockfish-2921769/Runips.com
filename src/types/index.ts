@@ -3,7 +3,7 @@ export interface Professor {
   name: string;
   lab: string | null;
   division: string;
-  scholar_citations: number;
+  scholar_citations: number | null;
   search_count: number;
   click_count: number;
   citations_updated_at: string | null;

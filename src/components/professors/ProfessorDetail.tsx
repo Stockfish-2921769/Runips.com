@@ -205,7 +205,7 @@ export default function ProfessorDetail({ id }: { id: string }) {
             <p className="text-sm text-gray-500 mt-1">{displayLab}</p>
             <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
               <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded">{t(`division.${professor.division}` as never) || professor.division}</span>
-              <span>📖 {t('stats.citations')} {professor.scholar_citations}</span>
+              <span>📖 {t('stats.citations')} {professor.scholar_citations ?? t('common.tbd')}</span>
               <span>🔍 {t('stats.search')} {professor.search_count}</span>
               <span>👆 {t('stats.clicks')} {professor.click_count}</span>
             </div>
