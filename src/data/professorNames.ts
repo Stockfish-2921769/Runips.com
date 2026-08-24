@@ -1,6 +1,7 @@
 export interface ProfessorNameEn {
   nameEn: string;
   labEn: string | null;
+  nameJa?: string;
 }
 
 export const PROFESSOR_EN: Record<number, ProfessorNameEn> = {
@@ -34,4 +35,5 @@ export const PROFESSOR_EN: Record<number, ProfessorNameEn> = {
   29: { nameEn: 'Shintaro Yamazaki', labEn: 'Integrated Systems Optimization Laboratory' },
   30: { nameEn: 'Toshihiko Yoshimasu', labEn: 'Wireless Communication Circuits Laboratory' },
   31: { nameEn: 'Kazunori Serita', labEn: 'Terahertz Integrated Systems Laboratory' },
+  32: { nameEn: 'Dong Shijie', labEn: 'Hippo8!415', nameJa: 'トウ・セイケツ' },
 };

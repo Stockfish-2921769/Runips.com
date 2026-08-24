@@ -90,7 +90,6 @@ export default function ProfessorHexagon({
     }
 
     ctx.fillStyle = '#6b7280';
-    ctx.font = '11px system-ui, -apple-system, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     for (let j = 0; j < 6; j++) {
@@ -98,7 +97,9 @@ export default function ProfessorHexagon({
       const labelRadius = radius + 18;
       const x = cx + labelRadius * Math.cos(angle);
       const y = cy + labelRadius * Math.sin(angle) + 4;
-      ctx.fillText(labels[j], x, y);
+      const label = labels[j] || '';
+      ctx.font = label.length > 6 ? '8px system-ui, -apple-system, sans-serif' : label.length > 4 ? '9px system-ui, -apple-system, sans-serif' : '11px system-ui, -apple-system, sans-serif';
+      ctx.fillText(label, x, y);
     }
   }, [values, labels, size]);
 

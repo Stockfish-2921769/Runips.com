@@ -52,6 +52,9 @@ const zh = {
     voted: '已投票（可修改）',
     loginToVote: '登录后可参与投票',
     loginWithGoogle: '使用 Google 登录',
+    loginLocked: '登录后解锁 4~6 项评价',
+    votedThanks: '投票成功，感谢参与 ✅',
+    anonymousDone: '已投票',
     submit: '提交投票',
     update: '更新投票',
     submitting: '提交中...',
@@ -70,7 +73,14 @@ const zh = {
   footer: {
     line: 'RunIPS — 早稻田学生非官方情报小站',
   },
-  axis: ['一', '二', '三', '四', '五', '六'],
+  dimensions: [
+    { label: '颜值&气场', desc: '教授的颜值和魅力' },
+    { label: '授课体验', desc: '教授的课程体验' },
+    { label: '情绪稳定度', desc: '教授的精神状态和交流风格' },
+    { label: '学术咖位', desc: '教授在学术界的影响力' },
+    { label: '指导能力', desc: '教授指导学生做研究的能力' },
+    { label: '神人含量', desc: '教授管理实验室气氛的能力' },
+  ],
 };
 
 const ja: typeof zh = {
@@ -125,6 +135,9 @@ const ja: typeof zh = {
     voted: '投票済み（変更可）',
     loginToVote: 'ログインして投票',
     loginWithGoogle: 'Googleでログイン',
+    loginLocked: 'ログインで4〜6項目の評価が解放されます',
+    votedThanks: '投票ありがとうございます ✅',
+    anonymousDone: '投票済み',
     submit: '投票する',
     update: '投票を更新',
     submitting: '送信中...',
@@ -143,7 +156,14 @@ const ja: typeof zh = {
   footer: {
     line: 'RunIPS — 早稲田の学生による非公式情報サイト',
   },
-  axis: ['一', '二', '三', '四', '五', '六'],
+  dimensions: [
+    { label: 'ビジュアル&オーラ', desc: '教授の見た目と魅力' },
+    { label: '授業体験', desc: '教授の授業を受ける体験の質' },
+    { label: '情緒安定度', desc: '教授の精神状態とコミュニケーションスタイル' },
+    { label: 'アカデミアでの影響力', desc: '学界における教授の影響力' },
+    { label: '指導力', desc: '教授が学生の研究を指導する力' },
+    { label: '神人濃度', desc: '教授がラボの雰囲気をマネジメントする力' },
+  ],
 };
 
 const en: typeof zh = {
@@ -198,6 +218,9 @@ const en: typeof zh = {
     voted: 'Voted (editable)',
     loginToVote: 'Log in to vote',
     loginWithGoogle: 'Sign in with Google',
+    loginLocked: 'Log in to unlock items 4–6',
+    votedThanks: 'Thanks for voting ✅',
+    anonymousDone: 'Voted',
     submit: 'Submit vote',
     update: 'Update vote',
     submitting: 'Submitting...',
@@ -216,7 +239,14 @@ const en: typeof zh = {
   footer: {
     line: 'RunIPS — an unofficial info hub by Waseda students',
   },
-  axis: ['1', '2', '3', '4', '5', '6'],
+  dimensions: [
+    { label: 'Looks & Charisma', desc: "The professor's appearance and charm" },
+    { label: 'Teaching Experience', desc: "The quality of the professor's classes" },
+    { label: 'Emotional Stability', desc: "The professor's temperament and communication style" },
+    { label: 'Academic Influence', desc: "The professor's impact in academia" },
+    { label: 'Mentorship', desc: "The professor's ability to guide student research" },
+    { label: 'Lab Vibes', desc: "The professor's ability to foster a great lab atmosphere" },
+  ],
 };
 
 export const translations: Record<Lang, typeof zh> = { zh, ja, en };

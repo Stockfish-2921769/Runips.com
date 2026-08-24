@@ -9,12 +9,14 @@ interface I18nContextValue {
   lang: Lang;
   setLang: (lang: Lang) => void;
   t: (key: string, params?: Record<string, string | number>) => string;
+  dimensions: { label: string; desc: string }[];
 }
 
 const I18nContext = createContext<I18nContextValue>({
   lang: 'zh',
   setLang: () => {},
   t: (key) => key,
+  dimensions: [],
 });
 
 function resolve(obj: Record<string, unknown>, path: string): string {
@@ -57,7 +59,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <I18nContext.Provider value={{ lang, setLang, t }}>
+    <I18nContext.Provider value={{ lang, setLang, t, dimensions: translations[lang].dimensions }}>
       {children}
     </I18nContext.Provider>
   );

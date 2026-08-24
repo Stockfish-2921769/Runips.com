@@ -26,7 +26,10 @@ export default function RankingCard({ item, rank, mode = 'clicks', ratings = [] 
   const divisionColor = divisionColors[item.division] || 'bg-gray-100 text-gray-700';
   const divisionLabel = t(`division.${item.division}` as never) || item.division;
   const en = PROFESSOR_EN[item.id];
-  const displayName = lang === 'en' && en ? en.nameEn : item.name;
+  const displayName =
+    lang === 'en' && en ? en.nameEn :
+    lang === 'ja' && en?.nameJa ? en.nameJa :
+    item.name;
   const displayLab = lang === 'en' && en?.labEn ? en.labEn : item.lab || t('common.labUnknown');
   const hasRatings = ratings.some((v) => v > 0);
 
@@ -78,7 +81,7 @@ export default function RankingCard({ item, rank, mode = 'clicks', ratings = [] 
       </div>
 
       <div className="flex-shrink-0 hidden md:block">
-        <ProfessorHexagon values={ratings} labels={[...t('axis')]} size={84} />
+        <ProfessorHexagon values={ratings} labels={['1', '2', '3', '4', '5', '6']} size={84} />
         {!hasRatings && <div className="text-center text-[10px] text-gray-300 mt-0.5">{t('detail.noVotes')}</div>}
       </div>
     </Link>
