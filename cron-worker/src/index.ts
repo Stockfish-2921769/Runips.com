@@ -14,7 +14,7 @@ interface Env {
 
 const UPDATE_INTERVAL_MS = 5 * 24 * 60 * 60 * 1000;
 
-export default {
+const worker = {
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
     ctx.waitUntil(runCollection(env));
   },
@@ -28,6 +28,8 @@ export default {
     return new Response('RunIPS data collector. Use /__run?manual=1 to trigger.', { status: 200 });
   },
 };
+
+export default worker;
 
 async function runCollection(env: Env) {
   const log: string[] = [];

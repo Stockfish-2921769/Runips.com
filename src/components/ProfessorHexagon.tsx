@@ -6,12 +6,18 @@ interface ProfessorHexagonProps {
   values: number[];
   labels?: string[];
   size?: number;
+  maxValue?: number;
+  emptyLabel?: string;
+  ariaLabel?: string;
 }
 
 export default function ProfessorHexagon({
   values,
   labels = ['一', '二', '三', '四', '五', '六'],
   size = 180,
+  maxValue = 6,
+  emptyLabel = '暂无数据',
+  ariaLabel = 'Professor rating radar chart',
 }: ProfessorHexagonProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -28,7 +34,7 @@ export default function ProfessorHexagon({
     const levels = 5;
 
     const hasData = values.some((v) => v > 0);
-    const clamped = values.map((v) => Math.min(Math.max(v, 0), 6));
+    const clamped = values.map((v) => Math.min(Math.max(v, 0), maxValue));
 
     ctx.clearRect(0, 0, size, size);
 
@@ -39,7 +45,8 @@ export default function ProfessorHexagon({
         const r = (radius * i) / levels;
         const x = cx + r * Math.cos(angle);
         const y = cy + r * Math.sin(angle);
-        j === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        if (j === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
       }
       ctx.closePath();
       ctx.strokeStyle = '#e5e7eb';
@@ -61,10 +68,11 @@ export default function ProfessorHexagon({
       ctx.beginPath();
       for (let j = 0; j < 6; j++) {
         const angle = (Math.PI * 2 * j) / 6 - Math.PI / 2;
-        const r = (radius * clamped[j]) / 6;
+        const r = (radius * clamped[j]) / maxValue;
         const x = cx + r * Math.cos(angle);
         const y = cy + r * Math.sin(angle);
-        j === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        if (j === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
       }
       ctx.closePath();
       ctx.fillStyle = 'rgba(59, 130, 246, 0.25)';
@@ -75,7 +83,7 @@ export default function ProfessorHexagon({
 
       for (let j = 0; j < 6; j++) {
         const angle = (Math.PI * 2 * j) / 6 - Math.PI / 2;
-        const r = (radius * clamped[j]) / 6;
+        const r = (radius * clamped[j]) / maxValue;
         ctx.beginPath();
         ctx.arc(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 3.5, 0, Math.PI * 2);
         ctx.fillStyle = '#3b82f6';
@@ -86,7 +94,7 @@ export default function ProfessorHexagon({
       ctx.font = `${Math.floor(size / 10)}px system-ui, -apple-system, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('暂无数据', cx, cy);
+      ctx.fillText(emptyLabel, cx, cy);
     }
 
     ctx.fillStyle = '#6b7280';
@@ -101,7 +109,16 @@ export default function ProfessorHexagon({
       ctx.font = label.length > 6 ? '8px system-ui, -apple-system, sans-serif' : label.length > 4 ? '9px system-ui, -apple-system, sans-serif' : '11px system-ui, -apple-system, sans-serif';
       ctx.fillText(label, x, y);
     }
-  }, [values, labels, size]);
+  }, [values, labels, size, maxValue, emptyLabel]);
 
-  return <canvas ref={canvasRef} width={size} height={size} style={{ width: size, height: size }} />;
+  return (
+    <canvas
+      ref={canvasRef}
+      width={size}
+      height={size}
+      style={{ width: size, height: size }}
+      role="img"
+      aria-label={ariaLabel}
+    />
+  );
 }

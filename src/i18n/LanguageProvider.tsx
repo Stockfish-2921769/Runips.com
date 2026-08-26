@@ -1,9 +1,27 @@
 'use client';
 
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useSyncExternalStore } from 'react';
 import { translations, Lang } from '@/i18n/translations';
 
 const STORAGE_KEY = 'runips-lang';
+const languageListeners = new Set<() => void>();
+
+function getLanguageSnapshot(): Lang {
+  if (typeof window === 'undefined') return 'en';
+  return localStorage.getItem(STORAGE_KEY) === 'zh' ? 'zh' : 'en';
+}
+
+function subscribeToLanguage(listener: () => void) {
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === STORAGE_KEY || event.key === null) listener();
+  };
+  languageListeners.add(listener);
+  window.addEventListener('storage', handleStorage);
+  return () => {
+    languageListeners.delete(listener);
+    window.removeEventListener('storage', handleStorage);
+  };
+}
 
 interface I18nContextValue {
   lang: Lang;
@@ -13,7 +31,7 @@ interface I18nContextValue {
 }
 
 const I18nContext = createContext<I18nContextValue>({
-  lang: 'zh',
+  lang: 'en',
   setLang: () => {},
   t: (key) => key,
   dimensions: [],
@@ -33,19 +51,18 @@ function resolve(obj: Record<string, unknown>, path: string): string {
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(STORAGE_KEY) as Lang | null;
-      if (saved && translations[saved]) {
-        return saved;
-      }
-    }
-    return 'zh';
-  });
+  const lang = useSyncExternalStore<Lang>(subscribeToLanguage, getLanguageSnapshot, () => 'en');
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved && saved !== 'en' && saved !== 'zh') localStorage.removeItem(STORAGE_KEY);
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  }, [lang]);
 
   const setLang = (l: Lang) => {
-    setLangState(l);
     localStorage.setItem(STORAGE_KEY, l);
+    document.documentElement.lang = l === 'zh' ? 'zh-CN' : 'en';
+    languageListeners.forEach((listener) => listener());
   };
 
   const t = (key: string, params?: Record<string, string | number>): string => {

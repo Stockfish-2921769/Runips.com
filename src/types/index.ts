@@ -10,11 +10,6 @@ export interface Professor {
   created_at: string;
 }
 
-export interface ProfessorRankingItem extends Professor {
-  vote_count: number;
-  score: number;
-}
-
 export interface ProfessorRatingAvg {
   professor_id: number;
   opt_1_avg: number | null;

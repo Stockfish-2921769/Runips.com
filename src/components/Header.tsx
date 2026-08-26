@@ -8,9 +8,8 @@ import { useI18n } from '@/i18n/LanguageProvider';
 import { Lang } from '@/i18n/translations';
 
 const LANGS: { code: Lang; label: string }[] = [
-  { code: 'zh', label: '中文' },
-  { code: 'ja', label: '日本語' },
   { code: 'en', label: 'EN' },
+  { code: 'zh', label: '中文' },
 ];
 
 export default function Header() {
@@ -25,29 +24,37 @@ export default function Header() {
     window.location.href = '/';
   };
 
-  const userInitial = user?.user_metadata?.name?.[0] || user?.email?.[0]?.toUpperCase() || 'U';
+  const userInitial = user?.is_anonymous
+    ? 'R'
+    : user?.user_metadata?.name?.[0] || user?.email?.[0]?.toUpperCase() || 'U';
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
-      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-bold text-xl text-gray-900">
-          <span className="w-8 h-8 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-lg flex items-center justify-center text-white text-sm font-bold">R</span>
-          RunIPS
+    <header className="sticky top-0 z-50 border-b border-rule/70 bg-background">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+        <Link href="/" className="flex shrink-0 items-center gap-3 text-ink" aria-label="RunIPS home">
+          <span className="gradient-button flex h-8 w-8 items-center justify-center rounded-lg text-sm font-extrabold text-white">R</span>
+          <span className="hidden min-[390px]:block">
+            <span className="block text-sm font-bold leading-none text-foreground">RunIPS</span>
+            <span className="mt-1 block text-[8px] font-semibold tracking-[0.16em] text-faint">WASEDA IPS GUIDE</span>
+          </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1">
-          <Link href="/" className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 rounded-md hover:bg-gray-50 transition-colors">{t('nav.home')}</Link>
-          <Link href="/ranking" className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 rounded-md hover:bg-gray-50 transition-colors">{t('nav.ranking')}</Link>
+        <nav className="hidden items-center gap-7 md:flex">
+          <Link href="/" className="text-xs font-medium text-muted hover:text-foreground">{t('nav.home')}</Link>
+          <Link href="/community" className="text-xs font-medium text-muted hover:text-foreground">{t('nav.community')}</Link>
+          <Link href="/travel" className="text-xs font-medium text-muted hover:text-foreground">{lang === 'zh' ? '旅行指南' : 'Travel Guide'}</Link>
+          <Link href="/contact" className="text-xs font-medium text-muted hover:text-foreground">{t('nav.contact')}</Link>
         </nav>
 
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-gray-100 rounded-full p-0.5">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <div className="flex items-center rounded-md border border-rule bg-panel p-0.5" aria-label="Language">
             {LANGS.map((l) => (
               <button
                 key={l.code}
                 onClick={() => setLang(l.code)}
-                className={`px-2 py-0.5 text-xs rounded-full transition-colors ${
-                  lang === l.code ? 'bg-white text-blue-600 font-medium shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                aria-pressed={lang === l.code}
+                className={`rounded px-1.5 py-1 text-[10px] sm:px-2 ${
+                  lang === l.code ? 'bg-rule font-semibold text-foreground' : 'text-faint hover:text-muted'
                 }`}
               >
                 {l.label}
@@ -59,20 +66,29 @@ export default function Header() {
             <div className="relative">
               <button
                 onClick={() => setUserMenu(!userMenu)}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-gray-50 transition-colors"
+                className="flex items-center px-1 py-1"
+                aria-label={user.is_anonymous ? t('login.guest') : user.user_metadata?.name || user.email || 'Account'}
+                aria-expanded={userMenu}
               >
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-medium">
+                <div className="flex h-8 w-8 items-center justify-center rounded-md border border-rule bg-panel text-xs font-bold text-foreground">
                   {userInitial}
                 </div>
               </button>
               {userMenu && (
-                <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
-                  <div className="px-3 py-2 border-b border-gray-50 text-sm text-gray-500 truncate">
-                    {user.user_metadata?.name || user.email}
+                <div className="absolute right-0 z-50 mt-2 w-44 rounded-lg border border-rule bg-panel-raised p-1">
+                  <div className="truncate border-b border-rule px-3 py-2 text-sm text-muted">
+                    {user.is_anonymous ? t('login.guest') : user.user_metadata?.name || user.email}
                   </div>
+                  <Link
+                    href="/account/delete"
+                    onClick={() => setUserMenu(false)}
+                    className="block w-full rounded-md px-3 py-2 text-left text-sm text-muted hover:bg-rule hover:text-foreground"
+                  >
+                    {t('common.account')}
+                  </Link>
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-gray-50"
+                    className="w-full rounded-md px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10"
                   >
                     {t('common.logout')}
                   </button>
@@ -80,14 +96,16 @@ export default function Header() {
               )}
             </div>
           ) : (
-            <Link href="/login" className="text-sm px-4 py-1.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">Google</Link>
+            <Link href="/login" className="gradient-button rounded-lg px-3 py-2 text-xs font-semibold text-white hover:opacity-90 sm:px-4">{t('login.action')}</Link>
           )}
 
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden p-1.5 text-gray-600 hover:text-gray-900"
+            className="p-1.5 text-muted hover:text-foreground md:hidden"
+            aria-label="Menu"
+            aria-expanded={menuOpen}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               {menuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />}
             </svg>
           </button>
@@ -95,10 +113,12 @@ export default function Header() {
       </div>
 
       {menuOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white">
-          <div className="px-4 py-2 space-y-1">
-            <Link href="/" className="block px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50" onClick={() => setMenuOpen(false)}>{t('nav.home')}</Link>
-            <Link href="/ranking" className="block px-3 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-50" onClick={() => setMenuOpen(false)}>{t('nav.ranking')}</Link>
+        <div className="border-t border-rule bg-background md:hidden">
+          <div className="divide-y divide-rule px-4">
+            <Link href="/" className="block py-3 text-sm font-medium text-muted hover:text-foreground" onClick={() => setMenuOpen(false)}>{t('nav.home')}</Link>
+            <Link href="/community" className="block py-3 text-sm font-medium text-muted hover:text-foreground" onClick={() => setMenuOpen(false)}>{t('nav.community')}</Link>
+            <Link href="/travel" className="block py-3 text-sm font-medium text-muted hover:text-foreground" onClick={() => setMenuOpen(false)}>{lang === 'zh' ? '旅行指南' : 'Travel Guide'}</Link>
+            <Link href="/contact" className="block py-3 text-sm font-medium text-muted hover:text-foreground" onClick={() => setMenuOpen(false)}>{t('nav.contact')}</Link>
           </div>
         </div>
       )}

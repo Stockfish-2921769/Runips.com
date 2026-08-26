@@ -1,317 +1,358 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import ProfessorHexagon from '@/components/ProfessorHexagon';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
-import { useI18n } from '@/i18n/LanguageProvider';
-import { Professor, ProfessorRatingAvg, VoteRow } from '@/types';
 import { PROFESSOR_EN } from '@/data/professorNames';
+import ProfessorReviewForm from '@/features/professor-reviews/ProfessorReviewForm';
+import ProfessorReviewList from '@/features/professor-reviews/ProfessorReviewList';
+import ProfessorReviewOverview from '@/features/professor-reviews/ProfessorReviewOverview';
+import ReviewPrivacyNotice from '@/features/professor-reviews/ReviewPrivacyNotice';
+import {
+  ProfessorReview,
+  ProfessorReviewDraft,
+  ProfessorReviewsSnapshot,
+  ReviewVoteValue,
+  emptyReviewSummary,
+} from '@/features/professor-reviews/model';
+import {
+  getProfessorReviews,
+  reportProfessorReview,
+  saveProfessorReview,
+  setProfessorReviewVote,
+} from '@/features/professor-reviews/repository';
+import { useI18n } from '@/i18n/LanguageProvider';
 import { supabase } from '@/lib/supabase';
-
-const RATING_SCALE = [1, 2, 3, 4, 5, 6];
-const PUBLIC_DIMS = 3;
+import { getGoogleScholarSearchUrl } from '@/lib/scholar';
+import { Professor } from '@/types';
 
 export default function ProfessorDetail({ id }: { id: string }) {
   const professorId = Number(id);
+  const validProfessorId = Number.isInteger(professorId) && professorId > 0;
   const { user, loading: authLoading } = useAuth();
-  const { lang, t, dimensions } = useI18n();
+  const userId = user?.id;
+  const { lang, t } = useI18n();
 
   const [professor, setProfessor] = useState<Professor | null>(null);
-  const [ratings, setRatings] = useState<ProfessorRatingAvg | null>(null);
-  const [myVote, setMyVote] = useState<VoteRow | null>(null);
-  const [scores, setScores] = useState<number[]>([0, 0, 0, 0, 0, 0]);
-  const [pageLoading, setPageLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [pageLoading, setPageLoading] = useState(validProfessorId);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [privacyNoticeOpen, setPrivacyNoticeOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [busyReviewId, setBusyReviewId] = useState<number | null>(null);
   const [notice, setNotice] = useState('');
-  const [anonymousVoted, setAnonymousVoted] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem(`runips_anon_voted_${Number(id)}`) === '1';
-    }
-    return false;
+  const [snapshot, setSnapshot] = useState<ProfessorReviewsSnapshot>({
+    reviews: [],
+    myReview: null,
+    summary: emptyReviewSummary(professorId),
+    available: true,
   });
 
-  const anonKey = `runips_anon_voted_${professorId}`;
+  const loginHref = `/login/?next=${encodeURIComponent(`/professors/${professorId}/`)}`;
 
   useEffect(() => {
-    if (!professorId) return;
+    if (!validProfessorId) return;
 
     let mounted = true;
-    const load = async () => {
-      const [profRes, rateRes] = await Promise.all([
-        supabase.from('professors').select('*').eq('id', professorId).maybeSingle(),
-        supabase.from('professor_ratings_avg').select('*').eq('professor_id', professorId).maybeSingle(),
-      ]);
-
-      if (mounted) {
-        if (profRes.data) {
-          setProfessor(profRes.data as Professor);
-          if (rateRes.data) {
-            const r = rateRes.data as ProfessorRatingAvg;
-            setRatings(r);
-            setScores([r.opt_1_avg ?? 0, r.opt_2_avg ?? 0, r.opt_3_avg ?? 0, r.opt_4_avg ?? 0, r.opt_5_avg ?? 0, r.opt_6_avg ?? 0]);
-          }
-        }
+    supabase
+      .from('professors')
+      .select('*')
+      .eq('id', professorId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!mounted) return;
+        setProfessor(data ? (data as Professor) : null);
         setPageLoading(false);
-      }
-    };
-    load();
-
-    const key = `clicked_${professorId}`;
-    if (!sessionStorage.getItem(key)) {
-      supabase.rpc('increment_clicks', { p_professor_id: professorId }).then(() => {
-        sessionStorage.setItem(key, '1');
       });
-    }
 
     return () => {
       mounted = false;
     };
-  }, [professorId, anonKey]);
+  }, [professorId, validProfessorId]);
 
-  useEffect(() => {
-    if (!user || !professorId) return;
-    supabase
-      .from('votes')
-      .select('*')
-      .eq('professor_id', professorId)
-      .eq('user_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setMyVote(data as VoteRow);
-          setScores([data.opt_1, data.opt_2, data.opt_3, data.opt_4, data.opt_5, data.opt_6]);
-        }
-      });
-  }, [user, professorId]);
-
-  const handleScore = (index: number, value: number) => {
-    if (!user && index >= PUBLIC_DIMS) return;
-    setScores((prev) => prev.map((v, i) => (i === index ? value : v)));
+  const refreshReviews = async () => {
+    if (!validProfessorId) return;
+    try {
+      const nextSnapshot = await getProfessorReviews(professorId, userId);
+      setSnapshot(nextSnapshot);
+    } catch {
+      setNotice(t('review.loadFailed'));
+    } finally {
+      setReviewsLoading(false);
+    }
   };
 
-  const handleSubmit = async () => {
-    if (!professorId) return;
-    setSubmitting(true);
-    setNotice('');
+  useEffect(() => {
+    if (authLoading || !validProfessorId) return;
+    let mounted = true;
 
-    const isAnon = !user;
-    const required = isAnon ? scores.slice(0, PUBLIC_DIMS) : scores;
-    if (required.some((s) => s <= 0)) {
-      setNotice(t('detail.failed'));
-      setSubmitting(false);
+    getProfessorReviews(professorId, userId)
+      .then((nextSnapshot) => {
+        if (mounted) setSnapshot(nextSnapshot);
+      })
+      .catch(() => {
+        if (mounted) setNotice(t('review.loadFailed'));
+      })
+      .finally(() => {
+        if (mounted) setReviewsLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [authLoading, professorId, t, userId, validProfessorId]);
+
+  const professorNames = useMemo(() => {
+    if (!professor) return { displayName: '', displayLab: '' };
+    const translated = PROFESSOR_EN[professor.id];
+    const displayName =
+      lang === 'en' && translated ? translated.nameEn
+        : professor.name;
+    const displayLab = lang === 'en' && translated?.labEn
+      ? translated.labEn
+      : professor.lab || t('common.labUnknown');
+    return { displayName, displayLab };
+  }, [lang, professor, t]);
+
+  const handleSave = async (draft: ProfessorReviewDraft) => {
+    if (!user || !snapshot.available) throw new Error('Review module unavailable');
+    await saveProfessorReview(professorId, draft);
+    await refreshReviews();
+    setNotice(snapshot.myReview ? t('review.updatedSuccess') : t('review.publishedSuccess'));
+  };
+
+  const handleVote = async (review: ProfessorReview, value: ReviewVoteValue) => {
+    if (!user) {
+      window.location.href = loginHref;
       return;
     }
 
-    let ok = false;
-    if (isAnon) {
-      const { error } = await supabase.from('votes').insert({
-        professor_id: professorId,
-        opt_1: scores[0],
-        opt_2: scores[1],
-        opt_3: scores[2],
+    const nextVote = review.viewerVote === value ? null : value;
+    setBusyReviewId(review.id);
+    setNotice('');
+    try {
+      await setProfessorReviewVote(review.id, nextVote);
+      setSnapshot((current) => {
+        const reviews = current.reviews.map((item) => {
+          if (item.id !== review.id) return item;
+          return {
+            ...item,
+            helpfulCount: item.helpfulCount - (item.viewerVote === 1 ? 1 : 0) + (nextVote === 1 ? 1 : 0),
+            unhelpfulCount: item.unhelpfulCount - (item.viewerVote === -1 ? 1 : 0) + (nextVote === -1 ? 1 : 0),
+            viewerVote: nextVote,
+          };
+        });
+        const myReview = current.myReview?.id === review.id
+          ? reviews.find((item) => item.id === review.id) ?? current.myReview
+          : current.myReview;
+        return { ...current, reviews, myReview };
       });
-      ok = !error;
-    } else if (myVote) {
-      const { error } = await supabase.from('votes').update({
-        opt_1: scores[0],
-        opt_2: scores[1],
-        opt_3: scores[2],
-        opt_4: scores[3],
-        opt_5: scores[4],
-        opt_6: scores[5],
-      }).eq('id', myVote.id);
-      ok = !error;
-    } else {
-      const { error } = await supabase.from('votes').insert({
-        professor_id: professorId,
-        user_id: user!.id,
-        opt_1: scores[0],
-        opt_2: scores[1],
-        opt_3: scores[2],
-        opt_4: scores[3],
-        opt_5: scores[4],
-        opt_6: scores[5],
-      });
-      ok = !error;
+    } catch {
+      setNotice(t('review.actionFailed'));
+    } finally {
+      setBusyReviewId(null);
     }
+  };
 
-    if (ok) {
-      if (isAnon) {
-        sessionStorage.setItem(anonKey, '1');
-        setAnonymousVoted(true);
-        setNotice(t('detail.votedThanks'));
-      } else {
-        setNotice(myVote ? t('detail.updatedVote') : t('detail.success'));
-      }
-      const { data } = await supabase
-        .from('professor_ratings_avg')
-        .select('*')
-        .eq('professor_id', professorId)
-        .maybeSingle();
-      if (data) {
-        const r = data as ProfessorRatingAvg;
-        setRatings(r);
-        setScores([r.opt_1_avg ?? 0, r.opt_2_avg ?? 0, r.opt_3_avg ?? 0, r.opt_4_avg ?? 0, r.opt_5_avg ?? 0, r.opt_6_avg ?? 0]);
-      }
-    } else {
-      setNotice(t('detail.failed'));
+  const handleReport = async (review: ProfessorReview) => {
+    if (!user) {
+      window.location.href = loginHref;
+      return;
     }
-    setSubmitting(false);
+    if (!window.confirm(t('review.reportConfirm'))) return;
+
+    setBusyReviewId(review.id);
+    try {
+      await reportProfessorReview(review.id, 'community_guidelines');
+      setNotice(t('review.reported'));
+    } catch {
+      setNotice(t('review.actionFailed'));
+    } finally {
+      setBusyReviewId(null);
+    }
   };
 
   if (pageLoading) {
-    return <div className="max-w-4xl mx-auto px-4 py-20 text-center text-gray-400">{t('common.loading')}</div>;
-  }
-
-  if (!professor) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">{t('detail.notFound')}</h1>
-        <Link href="/" className="text-blue-600 hover:underline">{t('detail.back')}</Link>
+      <div className="hero-grid mx-auto min-h-[60vh] px-4 py-20 text-center text-sm text-faint">
+        {t('common.loading')}
       </div>
     );
   }
 
-  const en = PROFESSOR_EN[professor.id];
-  const displayName =
-    lang === 'en' && en ? en.nameEn :
-    lang === 'ja' && en?.nameJa ? en.nameJa :
-    professor.name;
-  const displayLab = lang === 'en' && en?.labEn ? en.labEn : professor.lab || t('common.labUnknown');
+  if (!professor) {
+    return (
+      <div className="hero-grid min-h-[60vh] px-4 py-20 text-center">
+        <h1 className="text-2xl font-bold text-foreground">{t('detail.notFound')}</h1>
+        <Link href="/" className="mt-4 inline-block text-sm font-semibold text-violet-400 hover:text-violet-300">
+          {t('detail.back')}
+        </Link>
+      </div>
+    );
+  }
 
-  const axisLabels = dimensions.map((d) => d.label);
-  const hexagonValues = myVote
-    ? [myVote.opt_1, myVote.opt_2, myVote.opt_3, myVote.opt_4, myVote.opt_5, myVote.opt_6]
-    : scores;
-
-  const canVoteDims = (i: number) => user ? true : i < PUBLIC_DIMS;
-  const isLocked = !user && !anonymousVoted && !myVote;
-  const allLocked = anonymousVoted && !user;
+  const { displayName, displayLab } = professorNames;
+  const divisionLabel = t(`division.${professor.division}`) || professor.division;
+  const officialUrl = PROFESSOR_EN[professor.id]?.officialUrl;
+  const scholarUrl = getGoogleScholarSearchUrl(professor.id, displayName);
+  const citationUpdatedDate = professor.citations_updated_at
+    ? new Intl.DateTimeFormat(lang === 'zh' ? 'zh-CN' : 'en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).format(new Date(professor.citations_updated_at))
+    : null;
+  const openReviewFlow = () => setPrivacyNoticeOpen(true);
+  const rateAction = !snapshot.available && !reviewsLoading ? (
+    <button
+      type="button"
+      disabled
+      className="inline-flex cursor-not-allowed items-center justify-center rounded-lg border border-rule bg-panel-raised px-5 py-3 text-sm font-semibold text-faint"
+    >
+      {t('review.rateProfessor')}
+    </button>
+  ) : user ? (
+    <button
+      type="button"
+      onClick={openReviewFlow}
+      disabled={!snapshot.available}
+      className="gradient-button inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {snapshot.myReview ? t('review.editReview') : t('review.rateProfessor')}
+    </button>
+  ) : (
+    <Link
+      href={loginHref}
+      className="gradient-button inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold text-white hover:opacity-90"
+    >
+      {t('review.rateProfessor')}
+    </Link>
+  );
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      <div className="mb-4">
-        <Link href="/" className="text-sm text-blue-600 hover:underline">{t('detail.back')}</Link>
-      </div>
+    <div className="hero-grid">
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+        <Link href="/" className="inline-flex items-center gap-1 text-[11px] text-faint hover:text-foreground">
+          {t('detail.back')}
+        </Link>
 
-      <div className="bg-white rounded-xl border border-gray-100 p-6 mb-6">
-        <div className="flex items-start gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
-            {displayName[0]}
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{displayName}</h1>
-            <p className="text-sm text-gray-500 mt-1">{displayLab}</p>
-            <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded">{t(`division.${professor.division}` as never) || professor.division}</span>
-              <span>📖 {t('stats.citations')} {professor.scholar_citations ?? t('common.tbd')}</span>
-              <span>🔍 {t('stats.search')} {professor.search_count}</span>
-              <span>👆 {t('stats.clicks')} {professor.click_count}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white rounded-xl border border-gray-100 p-6 flex flex-col items-center">
-          <h2 className="font-semibold text-gray-900 mb-1">{t('detail.hexagonTitle')}</h2>
-          <p className="text-xs text-gray-400 mb-4">
-            {myVote ? t('detail.myRating') : ratings?.vote_count ? t('detail.avgRating', { n: ratings.vote_count }) : t('detail.noVotes')}
-          </p>
-          <ProfessorHexagon values={hexagonValues} labels={axisLabels} size={240} />
-          <div className="grid grid-cols-3 gap-x-6 gap-y-1 mt-4">
-            {axisLabels.map((label, i) => (
-              <div key={label} className="flex items-center justify-between gap-2 text-xs">
-                <span className="text-gray-500">{label}</span>
-                <span className="font-semibold text-gray-800">{(hexagonValues[i] ?? 0).toFixed(1)}</span>
+        <header className="mt-5 overflow-hidden rounded-2xl border border-rule bg-panel">
+          <div className="flex flex-col gap-6 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+            <div className="flex min-w-0 items-start gap-4 sm:gap-5">
+              <div className="gradient-button flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-xl font-extrabold text-white sm:h-16 sm:w-16 sm:text-2xl">
+                {displayName[0]}
               </div>
-            ))}
-          </div>
-          <div className="w-full mt-5 pt-4 border-t border-gray-50 space-y-1.5">
-            {dimensions.map((d, i) => (
-              <div key={d.label} className="flex items-start gap-2 text-xs">
-                <span className="text-gray-500 font-medium whitespace-nowrap">{i + 1}. {d.label}</span>
-                <span className="text-gray-400">{d.desc}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-900">{t('detail.voteTitle')}</h2>
-            <div className="flex items-center gap-2">
-              {myVote && <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded">{t('detail.voted')}</span>}
-              {anonymousVoted && !user && <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded">{t('detail.anonymousDone')}</span>}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {dimensions.map((d, i) => {
-              const votable = canVoteDims(i);
-              const locked = !votable && !myVote;
-              return (
-                <div key={d.label} className="flex items-center gap-3">
-                  <span className={`w-5 text-sm font-medium ${votable ? 'text-gray-600' : 'text-gray-300'}`}>
-                    {locked ? '🔒' : i + 1}
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-violet/30 bg-violet/10 px-2.5 py-1 text-[9px] font-medium text-violet-300">
+                    {divisionLabel}
                   </span>
-                  <div className="flex flex-col flex-1 min-w-0">
-                    <span className={`text-xs font-medium mb-0.5 ${votable ? 'text-gray-700' : 'text-gray-300'}`}>{d.label}</span>
-                    <div className={`flex gap-1 ${votable ? '' : 'opacity-40 pointer-events-none'}`}>
-                      {RATING_SCALE.map((v) => (
-                        <button
-                          key={v}
-                          onClick={() => handleScore(i, v)}
-                          className={`flex-1 py-1 text-xs rounded transition-colors ${
-                            scores[i] === v
-                              ? 'bg-blue-600 text-white font-bold'
-                              : 'bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600'
-                          }`}
-                          title={`${v}分`}
-                        >
-                          {v}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <span className="text-[10px] text-faint">{t('review.unofficial')}</span>
                 </div>
-              );
-            })}
+                <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-foreground sm:text-4xl">{displayName}</h1>
+                <p className="mt-2 text-xs text-muted sm:text-sm">{displayLab}</p>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+              {officialUrl && (
+                <a
+                  href={officialUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-rule bg-background px-4 py-3 text-sm font-semibold text-muted hover:border-violet/60 hover:text-foreground"
+                >
+                  <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} d="M14 4h6v6m0-6L10 14M5 7v12h12v-5" />
+                  </svg>
+                  {t('detail.officialProfile')}
+                </a>
+              )}
+              {rateAction}
+            </div>
           </div>
-
-          {isLocked && (
-            <div className="mt-4 text-center bg-blue-50/60 rounded-lg py-3">
-              <p className="text-xs text-gray-500 mb-2">{t('detail.loginLocked')}</p>
-              <Link href="/login" className="inline-block px-4 py-1.5 bg-blue-600 text-white rounded-full text-xs hover:bg-blue-700 transition-colors">
-                {t('detail.loginWithGoogle')}
-              </Link>
-            </div>
-          )}
-
-          {!authLoading && !user && !isLocked && (
-            <div className="mt-4 text-center">
-              <p className="text-xs text-gray-400">{t('detail.loginLocked')}</p>
-              <Link href="/login" className="inline-block mt-2 px-4 py-1.5 bg-blue-600 text-white rounded-full text-xs hover:bg-blue-700 transition-colors">
-                {t('detail.loginWithGoogle')}
-              </Link>
-            </div>
-          )}
-
-          {notice && (
-            <p className={`text-sm mt-4 text-center ${notice.includes('失敗') || notice.includes('失败') || notice.includes('fail') ? 'text-red-600' : 'text-green-600'}`}>{notice}</p>
-          )}
-
-          {!allLocked && (
-            <button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="w-full mt-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          <div className="grid grid-cols-3 gap-px border-t border-rule bg-rule">
+            <a
+              href={scholarUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="bg-panel-raised px-4 py-3 text-center hover:bg-panel"
+              title={t('stats.citationSource')}
             >
-              {submitting ? t('detail.submitting') : user ? (myVote ? t('detail.update') : t('detail.submit')) : t('detail.submit')}
-            </button>
+              <div className="text-sm font-bold tabular-nums text-foreground">{professor.scholar_citations ?? t('common.tbd')}</div>
+              <div className="mt-1 text-[8px] uppercase tracking-wider text-faint">{t('stats.citations')}</div>
+              {citationUpdatedDate && (
+                <div className="mt-1 text-[8px] text-faint">{t('stats.citationUpdated', { date: citationUpdatedDate })}</div>
+              )}
+              <div className="mt-1 text-[8px] font-semibold text-violet-300">{t('stats.scholar')}</div>
+            </a>
+            <div className="bg-panel-raised px-4 py-3 text-center">
+              <div className="text-sm font-bold tabular-nums text-foreground">
+                {snapshot.summary.overallAverage?.toFixed(1) ?? '—'}
+              </div>
+              <div className="mt-1 text-[8px] uppercase tracking-wider text-faint">{t('review.overall')}</div>
+            </div>
+            <div className="bg-panel-raised px-4 py-3 text-center">
+              <div className="text-sm font-bold tabular-nums text-foreground">{snapshot.summary.reviewCount}</div>
+              <div className="mt-1 text-[8px] uppercase tracking-wider text-faint">{t('review.studentReviews')}</div>
+            </div>
+          </div>
+        </header>
+
+        {notice && (
+          <div className="mt-5 rounded-lg border border-violet/30 bg-violet/10 px-4 py-3 text-sm font-medium text-violet-200" role="status">
+            {notice}
+          </div>
+        )}
+
+        {!snapshot.available && !reviewsLoading && (
+          <div className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            {t('review.moduleUnavailable')}
+          </div>
+        )}
+
+        <div className="mt-5">
+          {reviewsLoading ? (
+            <div className="rounded-xl border border-rule bg-panel py-24 text-center text-xs text-faint" aria-label={t('common.loading')}>
+              {t('common.loading')}
+            </div>
+          ) : (
+            <>
+              <ProfessorReviewOverview summary={snapshot.summary} />
+              <ProfessorReviewList
+                reviews={snapshot.reviews}
+                myReviewId={snapshot.myReview?.id}
+                busyReviewId={busyReviewId}
+                onEdit={openReviewFlow}
+                onVote={handleVote}
+                onReport={handleReport}
+              />
+            </>
           )}
         </div>
+
+        <aside className="mt-6 rounded-xl border border-rule bg-panel px-5 py-4 text-xs leading-6 text-faint">
+          <span className="font-semibold text-muted">{t('review.guidelinesTitle')}</span>{' '}
+          {t('review.guidelinesSummary')}
+        </aside>
+
+        {user && privacyNoticeOpen && (
+          <ReviewPrivacyNotice
+            professorName={displayName}
+            onClose={() => setPrivacyNoticeOpen(false)}
+            onContinue={() => {
+              setPrivacyNoticeOpen(false);
+              setFormOpen(true);
+            }}
+          />
+        )}
+
+        {user && formOpen && (
+          <ProfessorReviewForm
+            professorName={displayName}
+            initialReview={snapshot.myReview}
+            onClose={() => setFormOpen(false)}
+            onSave={handleSave}
+          />
+        )}
       </div>
     </div>
   );

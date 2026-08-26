@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RunIPS — 非官方情报小站",
-  description: "早稻田大学 IPS 学生交流分享情报的平台。教授列表、人气夯拉榜与风评投票。",
+  title: "RunIPS — Waseda IPS Student Guide",
+  description: "An unofficial Waseda University IPS guide for supervisor ratings, lab experiences, student reviews, and durable Community topics.",
 };
 
 export default function RootLayout({
@@ -28,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="ja"
+      lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">

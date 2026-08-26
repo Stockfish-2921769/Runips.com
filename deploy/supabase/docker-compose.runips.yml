@@ -1,0 +1,29 @@
+name: runips-backend
+
+services:
+  # The public reverse proxy is the only process allowed to reach the gateway.
+  api-gw:
+    ports: !override
+      - "127.0.0.1:18000:8000"
+
+  # Keep PostgreSQL pooler ports available for local maintenance without
+  # exposing them to the internet.
+  supavisor:
+    ports: !override
+      - "127.0.0.1:15432:5432"
+      - "127.0.0.1:16543:6543"
+
+  # RunIPS currently needs database, REST and Auth only. Keeping the unused
+  # services behind an inactive profile saves memory and avoids needless attack
+  # surface; they can be enabled later without changing the persisted database.
+  realtime:
+    profiles: ["optional-services"]
+
+  storage:
+    profiles: ["optional-services"]
+
+  imgproxy:
+    profiles: ["optional-services"]
+
+  functions:
+    profiles: ["optional-services"]

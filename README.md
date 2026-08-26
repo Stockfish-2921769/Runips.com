@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RunIPS
 
-## Getting Started
+RunIPS is an unofficial student guide for Waseda University IPS. Its current core is a professor/supervisor review experience focused on research supervision and lab life. Course reviews are intentionally kept out of this domain and can be added later as a separate module.
 
-First, run the development server:
+## Current product surface
+
+- Supervisor and lab directory across the three IPS divisions
+- English-default UI with an optional Chinese version
+- Supervisor profile with overall rating, research pressure, choose-again rate, rating distribution, tags, and six mentorship dimensions
+- Structured anonymous student reviews
+- Optional written comments and context fields with an explicit “Not disclosed” choice
+- Review sorting, student-level filtering, helpful votes, reports, and review editing
+- A searchable Community for durable topics, with replies, optional accepted replies, duplicate detection, follows, private notifications, reports, and moderation
+- Anonymous authentication, with Google authentication available as an optional provider
+- GDPR-aligned Privacy Notice and Terms and Conditions, plus a privacy checkpoint before opening the review form
+- Private in-app Contact inbox for feedback, content concerns, and privacy requests
+- Self-service account and linked-data erasure
+- Daily OpenAlex citation refresh with live Google Scholar links for cross-checking
+
+## Local development
+
+Install the locked dependencies and start Next.js:
 
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The frontend currently expects these public Supabase variables:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=false
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The app can still be built without a local environment file. Data requests require real credentials in the browser.
 
-## Learn More
+## Application database
 
-To learn more about Next.js, take a look at the following resources:
+RunIPS now uses its own PostgreSQL database with a self-hosted Supabase-compatible Auth and REST layer. The SQL files in [`supabase/migrations`](supabase/migrations) are the authoritative schema history and must be applied in filename order. They provide:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- The initial 31-professor directory
+- `professor_reviews`
+- `professor_review_votes`
+- `professor_review_reports`
+- Public, privacy-safe review and summary views
+- Nullable student context selected explicitly by the reviewer and 0–2,000-character written comments
+- Row-level ownership rules and one-review-per-user-per-professor enforcement
+- A write-only public feedback RPC backed by a non-public `feedback_submissions` inbox
+- Community topics, replies, categories, follows, private notifications, reports, and a private moderator queue
+- Full-database Community duplicate search, optional accepted replies, content status controls, and privacy-safe public views that never expose account UUIDs
+- An authenticated, transactional account-erasure RPC
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Feature pages import data operations through repository modules under `src/features`. This boundary lets the REST layer be replaced by a custom backend later without rewriting the UI or domain model. Course reviews remain a separate future module.
 
-## Deploy on Vercel
+Use [`deploy/scripts/apply-migrations.sh`](deploy/scripts/apply-migrations.sh) against the running database container. The script records applied migrations and safely skips them on later runs.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Self-hosted deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The current production architecture is a static Next.js export served by Nginx, backed by PostgreSQL, Auth, and REST services on the Singapore server. Database and application state live on the server's data disk, and PostgreSQL is backed up daily with 14-day retention.
+
+See [`deploy/README.md`](deploy/README.md) for service paths, operational commands, migration, backup, and rollback details. No credentials are stored in this repository.
+
+## Verification
+
+```bash
+npm run lint
+npx tsc --noEmit
+npm run build
+```
+
+The Next.js app is currently exported as static assets into `out/`.

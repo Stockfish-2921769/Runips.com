@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh RunIPS citation counts from OpenAlex
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/node /mnt/datadisk0/runips/application/current/deploy/scripts/refresh-openalex-citations.mjs
+User=root
+
+[Install]
+WantedBy=multi-user.target

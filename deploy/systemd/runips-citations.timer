@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh RunIPS citation counts daily
+
+[Timer]
+OnCalendar=*-*-* 03:25:00 Asia/Singapore
+Persistent=true
+RandomizedDelaySec=15m
+Unit=runips-citations.service
+
+[Install]
+WantedBy=timers.target
