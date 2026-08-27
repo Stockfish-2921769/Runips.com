@@ -255,11 +255,10 @@ const zh = {
       eyebrow: '提交前须知',
       title: '先确认隐私保护范围',
       close: '关闭隐私提示',
-      intro: '你的评价会以公开匿名方式展示。继续前，请确认哪些内容会公开，以及匿名保护的边界。',
-      publicAnonymous: '公开评价不会显示姓名、邮箱、账号 ID 或内部用户 ID。账号仅在系统内部用于防止重复评价和允许修改。',
-      dimensionsOptional: '六项详细评价中，任何一项都可以选择“不适用”。选了之后不会保存分数，也不会计入该导师的任何统计。',
-      commentOptional: '文字评论完全可选。若填写，请避免精确日期、研究主题或其他可能识别你的细节。',
-      limit: '公开匿名不等于绝对不可识别：授权管理员、服务器安全日志或依法处理的请求可能涉及内部数据。',
+      // 四条编号列表压成一段。原来的第二条讲「不适用」，那是评分功能不是隐私
+      // 事项，放在这里只会稀释真正需要读的两句：你自己写的内容才是暴露源，
+      // 以及公开匿名并非绝对不可识别。
+      body: '公开的评价不会显示你的姓名、邮箱或账号信息。最容易暴露身份的其实是你自己写的内容——若填写文字评论，请避开精确日期、具体研究方向等细节。也请知悉：公开匿名不等于绝对不可识别，授权管理员、服务器日志或依法处理的请求仍可能涉及内部数据。',
       readMore: '继续前可阅读完整说明：',
       cancel: '暂不评价',
       continue: '我已了解，继续评价',
@@ -580,11 +579,7 @@ const en: typeof zh = {
       eyebrow: 'Before you submit',
       title: 'Understand the privacy boundary',
       close: 'Close privacy notice',
-      intro: 'Your review is displayed anonymously to the public. Before continuing, confirm what becomes public and where anonymity has limits.',
-      publicAnonymous: 'Your name, email, account ID, and internal user ID are not public. The account is used internally only for duplicate prevention and later edits.',
-      dimensionsOptional: 'Any of the six detailed ratings can be marked “Not applicable”. No score is stored for it and it enters none of this supervisor’s statistics.',
-      commentOptional: 'The written comment is entirely optional. If you add one, avoid exact dates, research topics, or details that could identify you.',
-      limit: 'Public anonymity is not absolute untraceability. Authorised operators, security logs, or legally required handling may involve internal data.',
+      body: 'A published review shows no name, email or account information. What most often identifies a reviewer is their own wording, so if you write a comment, leave out exact dates, your specific research topic and similar detail. Public anonymity is not the same as being unidentifiable: authorised moderators, server logs and lawful requests can still involve internal data.',
       readMore: 'Read the full documents before continuing:',
       cancel: 'Do not rate now',
       continue: 'I understand — continue',
