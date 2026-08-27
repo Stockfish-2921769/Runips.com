@@ -31,7 +31,7 @@ const EMPTY_DRAFT: CreateCommunityTopicDraft = {
 };
 
 export default function NewCommunityTopic() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, profile, profileLoading } = useAuth();
   const { lang } = useI18n();
   const copy = getCommunityCopy(lang);
   const [draft, setDraft] = useState<CreateCommunityTopicDraft>(EMPTY_DRAFT);
@@ -45,6 +45,9 @@ export default function NewCommunityTopic() {
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const canParticipate = Boolean(
+    user && !user.is_anonymous && profile?.isPermanent && profile.profileCompleted,
+  );
 
   useEffect(() => {
     let active = true;
@@ -126,8 +129,8 @@ export default function NewCommunityTopic() {
       setFormError(copy.newTopic.validationAgreement);
       return;
     }
-    if (!user) {
-      window.location.assign(`/login/?next=${encodeURIComponent('/community/new/')}`);
+    if (!canParticipate) {
+      window.location.assign(user ? accountHref : loginHref);
       return;
     }
 
@@ -142,6 +145,7 @@ export default function NewCommunityTopic() {
   };
 
   const loginHref = `/login/?next=${encodeURIComponent('/community/new/')}`;
+  const accountHref = `/account/?next=${encodeURIComponent('/community/new/')}`;
 
   return (
     <CommunityFrame active="ask" compactHeader>
@@ -151,23 +155,23 @@ export default function NewCommunityTopic() {
         </Link>
 
         <div className="mt-5">
-          {authLoading || categoriesLoading ? (
+          {authLoading || categoriesLoading || (user && profileLoading) ? (
             <CommunityState kind="loading" />
           ) : loadError ? (
             <CommunityState kind="error" />
           ) : !moduleAvailable ? (
             <CommunityState kind="unavailable" />
-          ) : !user ? (
+          ) : !canParticipate ? (
             <CommunityState
               kind="empty"
-              title={copy.newTopic.signInTitle}
-              description={copy.newTopic.signInDescription}
+              title={user ? copy.newTopic.completeProfileTitle : copy.newTopic.signInTitle}
+              description={user ? copy.newTopic.completeProfileDescription : copy.newTopic.signInDescription}
               action={(
                 <Link
-                  href={loginHref}
+                  href={user ? accountHref : loginHref}
                   className="gradient-button inline-flex rounded-lg px-5 py-3 text-sm font-semibold text-white hover:opacity-90"
                 >
-                  {copy.actions.signIn}
+                  {user ? copy.newTopic.completeProfileAction : copy.actions.signIn}
                 </Link>
               )}
             />

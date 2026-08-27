@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { AccountAvatarColour, isAccountAvatarColour } from '@/features/account/model';
 import {
   CommunityCategory,
   CommunityIndexSnapshot,
@@ -15,6 +16,8 @@ import {
   CommunitySuggestionSnapshot,
   CommunityTopic,
   CommunityTopicKind,
+  CommunityTopicPage,
+  CommunityTopicQuery,
   CommunityTopicSnapshot,
   CommunityTopicStatus,
   CommunityTopicSummary,
@@ -76,6 +79,18 @@ function booleanValue(row: UnknownRow, keys: string[], fallback = false): boolea
   return optionalBooleanValue(row, keys) ?? fallback;
 }
 
+function stringArrayValue(row: UnknownRow, keys: string[]): string[] {
+  const value = firstValue(row, keys);
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+}
+
+function avatarColourValue(row: UnknownRow): AccountAvatarColour {
+  const value = stringValue(row, ['author_avatar_colour', 'avatar_colour']);
+  return isAccountAvatarColour(value) ? value : 'slate';
+}
+
 function normaliseKind(value: string): CommunityTopicKind {
   if (value === 'discussion' || value === 'guide') return value;
   return 'question';
@@ -133,6 +148,14 @@ function mapTopicSummary(value: unknown): CommunityTopicSummary {
     duplicateOfTopicId: nullableNumberValue(row, ['duplicate_of_topic_id', 'duplicate_of_id']),
     duplicateOfTitle: stringValue(row, ['duplicate_of_topic_title', 'duplicate_of_title']),
     authorLabel: stringValue(row, ['author_label', 'author_name'], 'Community member'),
+    authorUsername: stringValue(row, ['author_username', 'username']),
+    authorDisplayName: stringValue(
+      row,
+      ['author_display_name', 'display_name'],
+      stringValue(row, ['author_label', 'author_name'], 'Community member'),
+    ),
+    authorAvatarColour: avatarColourValue(row),
+    authorBadges: stringArrayValue(row, ['author_badges', 'badges']),
     createdAt,
     updatedAt,
     lastActivityAt: stringValue(row, ['last_activity_at'], updatedAt),
@@ -164,6 +187,14 @@ function mapReply(value: unknown): CommunityReply {
         ? 'hidden'
         : 'published',
     authorLabel: stringValue(row, ['author_label', 'author_name'], 'Community member'),
+    authorUsername: stringValue(row, ['author_username', 'username']),
+    authorDisplayName: stringValue(
+      row,
+      ['author_display_name', 'display_name'],
+      stringValue(row, ['author_label', 'author_name'], 'Community member'),
+    ),
+    authorAvatarColour: avatarColourValue(row),
+    authorBadges: stringArrayValue(row, ['author_badges', 'badges']),
     createdAt,
     updatedAt: stringValue(row, ['updated_at'], createdAt),
     isAccepted: booleanValue(row, ['is_accepted', 'accepted']),
@@ -219,21 +250,107 @@ function mapReport(value: unknown): CommunityReport {
   };
 }
 
-async function selectTopics(): Promise<{ data: unknown[]; error: RepositoryError }> {
-  const result = await supabase
-    .from('community_topics_public')
-    .select('*')
-    .neq('status', 'deleted')
-    .neq('status', 'hidden')
-    .order('last_activity_at', { ascending: false })
-    .limit(150);
+// Every column `mapTopicSummary` reads, and nothing else. The index view also
+// exposes `source_type`, `can_reply` and `tags`, which the summary discards.
+// Naming the columns instead of selecting `*` keeps those three off the wire.
+// Only add a name here that `community_topics_public` actually defines —
+// PostgREST rejects the whole request for an unknown column.
+const TOPIC_SUMMARY_COLUMNS = [
+  'id',
+  'kind',
+  'title',
+  // read only to derive bodyExcerpt (first 240 characters)
+  'body',
+  'category_slug',
+  'category_name_en',
+  'category_name_zh',
+  'status',
+  'reply_count',
+  'accepted_reply_id',
+  'duplicate_of_topic_id',
+  'duplicate_of_title',
+  'author_label',
+  'is_mine',
+  'can_accept_solution',
+  'can_moderate',
+  'is_subscribed',
+  'created_at',
+  'updated_at',
+  'last_activity_at',
+].join(',');
 
-  return { data: result.data ?? [], error: result.error };
+export const COMMUNITY_PAGE_SIZE = 30;
+
+type TopicQuery = Partial<CommunityTopicQuery>;
+
+async function selectTopics(
+  options: TopicQuery = {},
+): Promise<{ data: unknown[]; error: RepositoryError; hasMore: boolean }> {
+  const offset = Math.max(0, options.offset ?? 0);
+  const { filter, categorySlug } = options;
+
+  // The status/category controls used to filter an already-loaded array. Once
+  // the list is paginated that would only ever filter the rows fetched so far,
+  // so the same conditions are pushed into the query instead.
+  //
+  // Applied inline rather than through a generic helper: PostgREST's chained
+  // builder types nest deeply enough that wrapping them trips TS2589.
+  let query = supabase
+    .from('community_topics_public')
+    .select(TOPIC_SUMMARY_COLUMNS)
+    .neq('status', 'deleted');
+  // `hidden` is deliberately not filtered here. `community_topics_public` ends in
+  // `WHERE status <> 'hidden' OR viewer_is_community_moderator()`, so ordinary
+  // readers can never receive one anyway — filtering again would only hide the
+  // row from the moderator who needs to find it again to reopen it. Hidden rows
+  // carry their own status badge in the list.
+
+  if (filter === 'open') query = query.eq('status', 'open');
+  else if (filter === 'resolved') query = query.eq('status', 'resolved');
+  if (categorySlug && categorySlug !== 'all') query = query.eq('category_slug', categorySlug);
+
+  // `range` is inclusive at both ends, so asking for one row beyond the page
+  // reveals whether another page exists without paying for a count query.
+  const result = await query
+    .order('last_activity_at', { ascending: false })
+    .range(offset, offset + COMMUNITY_PAGE_SIZE);
+
+  const rows = result.data ?? [];
+  return {
+    data: rows.slice(0, COMMUNITY_PAGE_SIZE),
+    error: result.error,
+    hasMore: rows.length > COMMUNITY_PAGE_SIZE,
+  };
 }
 
-export async function getCommunityIndex(): Promise<CommunityIndexSnapshot> {
+function toTopicSummaries(rows: unknown[]): CommunityTopicSummary[] {
+  return rows
+    .map(mapTopicSummary)
+    .filter((topic) =>
+      topic.id > 0 && topic.title && topic.status !== 'deleted' && topic.status !== 'hidden');
+}
+
+/** Fetch one further page for the filters the list is already showing. */
+export async function getCommunityTopicsPage(options: TopicQuery): Promise<CommunityTopicPage> {
+  const result = await selectTopics(options);
+
+  if (result.error) {
+    if (isMissingCommunityResource(result.error)) {
+      return { topics: [], available: false, hasMore: false };
+    }
+    throw result.error;
+  }
+
+  return {
+    topics: toTopicSummaries(result.data),
+    available: true,
+    hasMore: result.hasMore,
+  };
+}
+
+export async function getCommunityIndex(options: TopicQuery = {}): Promise<CommunityIndexSnapshot> {
   const [topicsResult, categoriesResult] = await Promise.all([
-    selectTopics(),
+    selectTopics(options),
     supabase
       .from('community_categories')
       .select('*')
@@ -245,20 +362,18 @@ export async function getCommunityIndex(): Promise<CommunityIndexSnapshot> {
       isMissingCommunityResource(topicsResult.error) ||
       isMissingCommunityResource(categoriesResult.error)
     ) {
-      return { topics: [], categories: [], available: false };
+      return { topics: [], categories: [], available: false, hasMore: false };
     }
     throw topicsResult.error ?? categoriesResult.error;
   }
 
   return {
-    topics: topicsResult.data
-      .map(mapTopicSummary)
-      .filter((topic) =>
-        topic.id > 0 && topic.title && topic.status !== 'deleted' && topic.status !== 'hidden'),
+    topics: toTopicSummaries(topicsResult.data),
     categories: (categoriesResult.data ?? [])
       .map(mapCategory)
       .filter((category) => category.slug),
     available: true,
+    hasMore: topicsResult.hasMore,
   };
 }
 

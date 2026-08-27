@@ -1,3 +1,5 @@
+import { AccountAvatarColour } from '@/features/account/model';
+
 // `kind` remains an internal persistence detail for imported guides and legacy rows.
 // The public Community experience treats every user-created entry as a Topic.
 export type CommunityTopicKind = 'question' | 'discussion' | 'guide';
@@ -5,7 +7,10 @@ export type CommunityTopicStatus = 'open' | 'resolved' | 'duplicate' | 'closed' 
 export type CommunityReplyStatus = 'published' | 'hidden' | 'deleted';
 export type CommunityFilter = 'latest' | 'open' | 'resolved';
 export type CommunityReportTarget = 'topic' | 'reply';
-export type CommunityModerationAction = 'duplicate' | 'lock' | 'close' | 'reopen';
+// `lock` was dropped from the UI: it wrote a different status but behaved
+// exactly like `close` — same reply block, same treatment everywhere — so two
+// buttons only made the choice harder. The RPC still accepts it.
+export type CommunityModerationAction = 'duplicate' | 'close' | 'hide' | 'reopen';
 export type CommunityReplyModerationAction = 'hide' | 'restore';
 export type CommunityReportResolutionAction = 'hide' | 'dismiss';
 
@@ -38,6 +43,10 @@ export interface CommunityTopicSummary {
   duplicateOfTopicId: number | null;
   duplicateOfTitle: string;
   authorLabel: string;
+  authorUsername: string;
+  authorDisplayName: string;
+  authorAvatarColour: AccountAvatarColour;
+  authorBadges: string[];
   createdAt: string;
   updatedAt: string;
   lastActivityAt: string;
@@ -57,6 +66,10 @@ export interface CommunityReply {
   body: string;
   status: CommunityReplyStatus;
   authorLabel: string;
+  authorUsername: string;
+  authorDisplayName: string;
+  authorAvatarColour: AccountAvatarColour;
+  authorBadges: string[];
   createdAt: string;
   updatedAt: string;
   isAccepted: boolean;
@@ -75,6 +88,21 @@ export interface CommunityIndexSnapshot {
   topics: CommunityTopicSummary[];
   categories: CommunityCategory[];
   available: boolean;
+  /** False once the server has no further rows for the current filters. */
+  hasMore: boolean;
+}
+
+/** One page of topics for the index list. Filters are applied server-side. */
+export interface CommunityTopicPage {
+  topics: CommunityTopicSummary[];
+  available: boolean;
+  hasMore: boolean;
+}
+
+export interface CommunityTopicQuery {
+  filter: CommunityFilter;
+  categorySlug: string;
+  offset: number;
 }
 
 export interface CommunitySuggestionSnapshot {
@@ -126,6 +154,10 @@ export interface CreateCommunityTopicDraft {
 
 export function communityTopicHref(topicId: number): string {
   return `/community/t/?id=${encodeURIComponent(String(topicId))}`;
+}
+
+export function communityMemberHref(username: string): string {
+  return `/u/?username=${encodeURIComponent(username)}`;
 }
 
 export function isTopicClosed(status: CommunityTopicStatus): boolean {

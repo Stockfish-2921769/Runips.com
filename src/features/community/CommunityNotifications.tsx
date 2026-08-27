@@ -23,7 +23,7 @@ const EMPTY_SNAPSHOT: CommunityNotificationSnapshot = {
 };
 
 export default function CommunityNotifications() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, profile, profileLoading } = useAuth();
   const { lang } = useI18n();
   const copy = getCommunityCopy(lang);
   const [snapshot, setSnapshot] = useState<CommunityNotificationSnapshot>(EMPTY_SNAPSHOT);
@@ -34,7 +34,7 @@ export default function CommunityNotifications() {
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (authLoading || !user || !profile?.isPermanent) return;
     let active = true;
 
     getCommunityNotifications()
@@ -54,7 +54,7 @@ export default function CommunityNotifications() {
     return () => {
       active = false;
     };
-  }, [authLoading, reloadKey, user]);
+  }, [authLoading, profile?.isPermanent, reloadKey, user]);
 
   const handleMarkRead = async (notificationId: number) => {
     setBusyId(notificationId);
@@ -76,6 +76,7 @@ export default function CommunityNotifications() {
   };
 
   const loginHref = `/login/?next=${encodeURIComponent('/community/notifications/')}`;
+  const accountHref = `/account/?next=${encodeURIComponent('/community/notifications/')}`;
 
   return (
     <CommunityFrame active="notifications" compactHeader>
@@ -95,7 +96,7 @@ export default function CommunityNotifications() {
         </header>
 
         <div className="mt-6">
-          {authLoading ? (
+          {authLoading || (user && profileLoading) ? (
             <CommunityState kind="loading" />
           ) : !user ? (
             <CommunityState
@@ -108,6 +109,20 @@ export default function CommunityNotifications() {
                   className="gradient-button inline-flex rounded-lg px-5 py-3 text-sm font-semibold text-white hover:opacity-90"
                 >
                   {copy.actions.signIn}
+                </Link>
+              )}
+            />
+          ) : !profile?.isPermanent ? (
+            <CommunityState
+              kind="empty"
+              title={copy.newTopic.completeProfileTitle}
+              description={copy.newTopic.completeProfileDescription}
+              action={(
+                <Link
+                  href={accountHref}
+                  className="gradient-button inline-flex rounded-lg px-5 py-3 text-sm font-semibold text-white hover:opacity-90"
+                >
+                  {copy.newTopic.completeProfileAction}
                 </Link>
               )}
             />
