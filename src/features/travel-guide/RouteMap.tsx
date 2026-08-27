@@ -1,4 +1,5 @@
 import { resolveAirport } from './airports';
+import { WORLD_MAP_PATH } from './worldMap';
 import { travelCopy } from './copy';
 import { routeCodes, type Airport, type FlightOffer, type TravelLanguage } from './model';
 
@@ -161,14 +162,19 @@ export default function RouteMap({ offer, language }: { offer: FlightOffer; lang
             return <line key={`y-${step}`} x1={viewport.x} y1={y} x2={viewport.x + viewport.width} y2={y} />;
           })}
         </g>
-        <g fill="#17171b" stroke="#29292f" strokeWidth={1.2 * scale}>
-          <path d="M45 82 L92 48 L164 46 L214 72 L239 112 L210 140 L176 129 L151 161 L114 153 L87 122 L55 116 Z" />
-          <path d="M183 169 L220 179 L237 219 L223 263 L202 310 L181 282 L168 235 L157 196 Z" />
-          <path d="M386 73 L448 51 L525 57 L576 82 L639 76 L709 99 L777 114 L805 145 L765 166 L708 151 L657 170 L598 151 L554 126 L501 132 L462 111 L409 113 Z" />
-          <path d="M444 139 L497 142 L526 174 L517 228 L486 280 L451 246 L433 195 Z" />
-          <path d="M733 241 L777 223 L825 242 L833 278 L798 296 L753 281 Z" />
-          <path d="M301 41 L328 28 L357 39 L349 64 L317 71 Z" />
-        </g>
+        {/* Real coastlines and borders, pre-projected into this same 900x360
+            equirectangular space, so they register exactly with the airport
+            points below. Replaces six hand-drawn blobs that were only ever
+            approximately continent-shaped. */}
+        <path
+          d={WORLD_MAP_PATH}
+          fill="#17171b"
+          fillRule="evenodd"
+          stroke="#2c2c33"
+          strokeWidth={0.6 * scale}
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
         <g fill="none" strokeLinecap="round">
           {points.slice(0, -1).flatMap((point, index) =>
             routePaths(point, points[index + 1], scale).map((path, pathIndex) => (
