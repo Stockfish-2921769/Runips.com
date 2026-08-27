@@ -158,5 +158,7 @@ export const PROFESSOR_EN: Record<number, ProfessorNameEn> = {
     labEn: 'Terahertz Integrated Systems laboratory',
     officialUrl: 'https://www.waseda.jp/fsci/gips/other-en/2024/04/01/26640/',
   },
-  32: { nameEn: 'Dong Shijie', labEn: 'Hippo8!415', nameJa: 'トウ・セイケツ' },
+  // The stored name carries a "（Demo用例）" suffix so nobody mistakes the
+  // worked example for a real supervisor. The bare name stays searchable.
+  32: { nameEn: 'Dong Shijie', labEn: 'Hippo8!415', nameJa: 'トウ・セイケツ', aliases: ['董世杰', 'demo'] },
 };

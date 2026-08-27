@@ -22,8 +22,13 @@
   --foreground: #fafafa;
   --panel: #0d0d10;
   --panel-raised: #111116;
-  --muted: #a1a1aa;
-  --faint: #71717a;
+  /* Secondary text sits at 10-12px across the review form and the legal pages,
+     so it is normal text for contrast purposes and needs 4.5:1. The previous
+     --faint reached only 4.0:1 on --panel, which is why the small print read as
+     unreadably grey. Both steps were raised together to keep the
+     faint < muted < foreground hierarchy legible rather than flattening it. */
+  --muted: #b0b0ba;  /* 9.0:1 on --panel */
+  --faint: #8b8b96;  /* 5.8:1 on --panel */
   --rule: #27272a;
   --accent: #c026d3;
   --violet: #7c3aed;

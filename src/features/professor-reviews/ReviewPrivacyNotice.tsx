@@ -68,6 +68,7 @@ export default function ReviewPrivacyNotice({
               checklist is read by nobody — which defeats the point of showing
               it at all. */}
           <p className="text-sm leading-7 text-muted">{t('review.privacyNotice.body')}</p>
+          <p className="mt-4 text-sm leading-7 text-muted">{t('review.privacyNotice.conduct')}</p>
 
           <p className="mt-5 text-[11px] leading-6 text-faint">
             {t('review.privacyNotice.readMore')}{' '}
