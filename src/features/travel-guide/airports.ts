@@ -1,6 +1,52 @@
-import type { Airport, LocalisedText } from './model';
+import type { Airport, LocalisedText, TravelLanguage } from './model';
 
 const localised = (en: string, zh: string): LocalisedText => ({ en, zh });
+
+/**
+ * Country/region captions for the codes carried on the airports below.
+ *
+ * The three-letter code alone does not say where a place is, and the city name
+ * often does not either — a transit warning that reads "TPE · 台北" is far less
+ * useful than one that says which jurisdiction's rules apply.
+ */
+const COUNTRY_NAMES: Record<string, LocalisedText> = {
+  AE: localised('United Arab Emirates', '阿联酋'),
+  AU: localised('Australia', '澳大利亚'),
+  BD: localised('Bangladesh', '孟加拉国'),
+  CA: localised('Canada', '加拿大'),
+  CN: localised('China', '中国'),
+  DE: localised('Germany', '德国'),
+  FI: localised('Finland', '芬兰'),
+  FR: localised('France', '法国'),
+  GB: localised('United Kingdom', '英国'),
+  HK: localised('Hong Kong', '香港'),
+  ID: localised('Indonesia', '印度尼西亚'),
+  IN: localised('India', '印度'),
+  JP: localised('Japan', '日本'),
+  KH: localised('Cambodia', '柬埔寨'),
+  KR: localised('South Korea', '韩国'),
+  LK: localised('Sri Lanka', '斯里兰卡'),
+  MN: localised('Mongolia', '蒙古'),
+  MO: localised('Macau', '澳门'),
+  MY: localised('Malaysia', '马来西亚'),
+  NL: localised('Netherlands', '荷兰'),
+  NP: localised('Nepal', '尼泊尔'),
+  PH: localised('Philippines', '菲律宾'),
+  PK: localised('Pakistan', '巴基斯坦'),
+  QA: localised('Qatar', '卡塔尔'),
+  SG: localised('Singapore', '新加坡'),
+  TH: localised('Thailand', '泰国'),
+  TR: localised('Türkiye', '土耳其'),
+  TW: localised('Taiwan', '台湾'),
+  US: localised('United States', '美国'),
+  VN: localised('Vietnam', '越南'),
+};
+
+/** Empty for an unknown code, so callers can omit the caption rather than print a raw code. */
+export function countryName(countryCode: string, language: TravelLanguage): string {
+  const entry = COUNTRY_NAMES[countryCode.toUpperCase()];
+  return entry ? entry[language] : '';
+}
 
 function airport(
   code: string,
@@ -74,6 +120,63 @@ export const AIRPORTS: Record<string, Airport> = {
   HIJ: airport('HIJ', 'Hiroshima', '广岛', 'Hiroshima Airport', '广岛机场', 'JP', 34.4361, 132.9194),
   FUK: airport('FUK', 'Fukuoka', '福冈', 'Fukuoka Airport', '福冈机场', 'JP', 33.5859, 130.4507),
   KKJ: airport('KKJ', 'Kitakyushu', '北九州', 'Kitakyushu Airport', '北九州机场', 'JP', 33.8459, 131.0347),
+
+  // Codes outside this table still work — the search only checks the shape
+  // /^[A-Z]{3}$/ and `resolveAirport` falls back to an approximate entry.
+  // Listing them here is what puts them in the suggestion dropdown and gives
+  // the route map real coordinates.
+  CSX: airport('CSX', 'Changsha', '长沙', 'Changsha Huanghua International Airport', '长沙黄花国际机场', 'CN', 28.1892, 113.2196),
+  WUH: airport('WUH', 'Wuhan', '武汉', 'Wuhan Tianhe International Airport', '武汉天河国际机场', 'CN', 30.7838, 114.2081),
+  CKG: airport('CKG', 'Chongqing', '重庆', 'Chongqing Jiangbei International Airport', '重庆江北国际机场', 'CN', 29.7192, 106.6417),
+  XIY: airport('XIY', 'Xi’an', '西安', 'Xi’an Xianyang International Airport', '西安咸阳国际机场', 'CN', 34.4471, 108.7516),
+  KMG: airport('KMG', 'Kunming', '昆明', 'Kunming Changshui International Airport', '昆明长水国际机场', 'CN', 25.1019, 102.9292),
+  KHN: airport('KHN', 'Nanchang', '南昌', 'Nanchang Changbei International Airport', '南昌昌北国际机场', 'CN', 28.865, 115.9),
+  NKG: airport('NKG', 'Nanjing', '南京', 'Nanjing Lukou International Airport', '南京禄口国际机场', 'CN', 31.742, 118.8622),
+  TSN: airport('TSN', 'Tianjin', '天津', 'Tianjin Binhai International Airport', '天津滨海国际机场', 'CN', 39.1244, 117.3462),
+  SHE: airport('SHE', 'Shenyang', '沈阳', 'Shenyang Taoxian International Airport', '沈阳桃仙国际机场', 'CN', 41.6398, 123.4833),
+  DLC: airport('DLC', 'Dalian', '大连', 'Dalian Zhoushuizi International Airport', '大连周水子国际机场', 'CN', 38.9657, 121.5386),
+  HRB: airport('HRB', 'Harbin', '哈尔滨', 'Harbin Taiping International Airport', '哈尔滨太平国际机场', 'CN', 45.6234, 126.2503),
+  CGO: airport('CGO', 'Zhengzhou', '郑州', 'Zhengzhou Xinzheng International Airport', '郑州新郑国际机场', 'CN', 34.5197, 113.8408),
+  FOC: airport('FOC', 'Fuzhou', '福州', 'Fuzhou Changle International Airport', '福州长乐国际机场', 'CN', 25.9351, 119.6633),
+  NNG: airport('NNG', 'Nanning', '南宁', 'Nanning Wuxu International Airport', '南宁吴圩国际机场', 'CN', 22.6083, 108.1722),
+  KWE: airport('KWE', 'Guiyang', '贵阳', 'Guiyang Longdongbao International Airport', '贵阳龙洞堡国际机场', 'CN', 26.5385, 106.8007),
+  URC: airport('URC', 'Ürümqi', '乌鲁木齐', 'Ürümqi Diwopu International Airport', '乌鲁木齐地窝堡国际机场', 'CN', 43.9071, 87.4742),
+  TNA: airport('TNA', 'Jinan', '济南', 'Jinan Yaoqiang International Airport', '济南遥墙国际机场', 'CN', 36.8572, 117.216),
+  HFE: airport('HFE', 'Hefei', '合肥', 'Hefei Xinqiao International Airport', '合肥新桥国际机场', 'CN', 31.78, 116.9767),
+  NGB: airport('NGB', 'Ningbo', '宁波', 'Ningbo Lishe International Airport', '宁波栎社国际机场', 'CN', 29.8267, 121.4619),
+  CGQ: airport('CGQ', 'Changchun', '长春', 'Changchun Longjia International Airport', '长春龙嘉国际机场', 'CN', 43.9962, 125.685),
+  TYN: airport('TYN', 'Taiyuan', '太原', 'Taiyuan Wusu International Airport', '太原武宿国际机场', 'CN', 37.7469, 112.6284),
+  SJW: airport('SJW', 'Shijiazhuang', '石家庄', 'Shijiazhuang Zhengding International Airport', '石家庄正定国际机场', 'CN', 38.2807, 114.6973),
+  HAK: airport('HAK', 'Haikou', '海口', 'Haikou Meilan International Airport', '海口美兰国际机场', 'CN', 19.9349, 110.4589),
+  SYX: airport('SYX', 'Sanya', '三亚', 'Sanya Phoenix International Airport', '三亚凤凰国际机场', 'CN', 18.3029, 109.4123),
+  SWA: airport('SWA', 'Jieyang', '揭阳', 'Jieyang Chaoshan International Airport', '揭阳潮汕国际机场', 'CN', 23.5522, 116.5033),
+  ZUH: airport('ZUH', 'Zhuhai', '珠海', 'Zhuhai Jinwan Airport', '珠海金湾机场', 'CN', 22.0064, 113.3762),
+  HET: airport('HET', 'Hohhot', '呼和浩特', 'Hohhot Baita International Airport', '呼和浩特白塔国际机场', 'CN', 40.8514, 111.8244),
+  LHW: airport('LHW', 'Lanzhou', '兰州', 'Lanzhou Zhongchuan International Airport', '兰州中川国际机场', 'CN', 36.5152, 103.6204),
+  XNN: airport('XNN', 'Xining', '西宁', 'Xining Caojiabao International Airport', '西宁曹家堡国际机场', 'CN', 36.5275, 102.0429),
+  INC: airport('INC', 'Yinchuan', '银川', 'Yinchuan Hedong International Airport', '银川河东国际机场', 'CN', 38.3219, 106.3931),
+  WUX: airport('WUX', 'Wuxi', '无锡', 'Sunan Shuofang International Airport', '苏南硕放国际机场', 'CN', 31.4944, 120.4292),
+  KHH: airport('KHH', 'Kaohsiung', '高雄', 'Kaohsiung International Airport', '高雄国际机场', 'TW', 22.5771, 120.35),
+  SDJ: airport('SDJ', 'Sendai', '仙台', 'Sendai Airport', '仙台机场', 'JP', 38.1397, 140.917),
+  KOJ: airport('KOJ', 'Kagoshima', '鹿儿岛', 'Kagoshima Airport', '鹿儿岛机场', 'JP', 31.8034, 130.7194),
+  KMJ: airport('KMJ', 'Kumamoto', '熊本', 'Kumamoto Airport', '熊本机场', 'JP', 32.8373, 130.8551),
+  NGS: airport('NGS', 'Nagasaki', '长崎', 'Nagasaki Airport', '长崎机场', 'JP', 32.9169, 129.9137),
+  OKJ: airport('OKJ', 'Okayama', '冈山', 'Okayama Airport', '冈山机场', 'JP', 34.7569, 133.8553),
+  TAK: airport('TAK', 'Takamatsu', '高松', 'Takamatsu Airport', '高松机场', 'JP', 34.2142, 134.0156),
+  CJU: airport('CJU', 'Jeju', '济州', 'Jeju International Airport', '济州国际机场', 'KR', 33.5113, 126.493),
+  MFM: airport('MFM', 'Macau', '澳门', 'Macau International Airport', '澳门国际机场', 'MO', 22.1496, 113.5915),
+  ULN: airport('ULN', 'Ulaanbaatar', '乌兰巴托', 'Chinggis Khaan International Airport', '成吉思汗国际机场', 'MN', 47.6431, 106.82),
+  KTM: airport('KTM', 'Kathmandu', '加德满都', 'Tribhuvan International Airport', '特里布万国际机场', 'NP', 27.6966, 85.3591),
+  DAC: airport('DAC', 'Dhaka', '达卡', 'Hazrat Shahjalal International Airport', '沙阿贾拉勒国际机场', 'BD', 23.8433, 90.3978),
+  CMB: airport('CMB', 'Colombo', '科伦坡', 'Bandaranaike International Airport', '班达拉奈克国际机场', 'LK', 7.1808, 79.8841),
+  ISB: airport('ISB', 'Islamabad', '伊斯兰堡', 'Islamabad International Airport', '伊斯兰堡国际机场', 'PK', 33.5607, 72.8516),
+  PNH: airport('PNH', 'Phnom Penh', '金边', 'Phnom Penh International Airport', '金边国际机场', 'KH', 11.5466, 104.8441),
+  BLR: airport('BLR', 'Bengaluru', '班加罗尔', 'Kempegowda International Airport', '肯佩戈达国际机场', 'IN', 13.1986, 77.7066),
+  MAA: airport('MAA', 'Chennai', '金奈', 'Chennai International Airport', '金奈国际机场', 'IN', 12.9941, 80.1709),
+  HYD: airport('HYD', 'Hyderabad', '海得拉巴', 'Rajiv Gandhi International Airport', '拉吉夫·甘地国际机场', 'IN', 17.2403, 78.4294),
+  DPS: airport('DPS', 'Denpasar', '登巴萨', 'Ngurah Rai International Airport', '伍拉·赖国际机场', 'ID', -8.7482, 115.1672),
+  SUB: airport('SUB', 'Surabaya', '泗水', 'Juanda International Airport', '朱安达国际机场', 'ID', -7.3798, 112.7869),
+  DAD: airport('DAD', 'Da Nang', '岘港', 'Da Nang International Airport', '岘港国际机场', 'VN', 16.0439, 108.1994),
 };
 
 export const AIRPORT_SUGGESTIONS = Object.values(AIRPORTS)
@@ -94,4 +197,34 @@ export function resolveAirport(code: string, providerName = ''): Airport {
     longitude: 0,
     approximate: true,
   };
+}
+
+/**
+ * Free-text airport lookup: a code, a city or an airport name, in either
+ * language. Returns few enough rows to read at a glance, ordered so an exact
+ * code match wins, then a city that starts with the query, then everything else
+ * that merely contains it.
+ */
+export function searchAirports(query: string, limit = 8): Airport[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [];
+
+  const scored: { airport: Airport; score: number }[] = [];
+  for (const item of Object.values(AIRPORTS)) {
+    const code = item.code.toLowerCase();
+    const fields = [code, item.city.en.toLowerCase(), item.city.zh, item.name.en.toLowerCase(), item.name.zh];
+
+    let score = -1;
+    if (code === needle) score = 0;
+    else if (code.startsWith(needle)) score = 1;
+    else if (item.city.en.toLowerCase().startsWith(needle) || item.city.zh.startsWith(needle)) score = 2;
+    else if (fields.some((field) => field.includes(needle))) score = 3;
+
+    if (score >= 0) scored.push({ airport: item, score });
+  }
+
+  return scored
+    .sort((a, b) => a.score - b.score || a.airport.code.localeCompare(b.airport.code))
+    .slice(0, limit)
+    .map((entry) => entry.airport);
 }

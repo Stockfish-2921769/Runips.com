@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '@/i18n/LanguageProvider';
-import { AIRPORT_SUGGESTIONS } from './airports';
+import SuggestInput, { type Suggestion } from './SuggestInput';
+import { searchAirports, countryName } from './airports';
 import { travelCopy } from './copy';
 import FlightRouteExplorer from './FlightRouteExplorer';
 import TransitDocumentChecker from './TransitDocumentChecker';
@@ -51,6 +52,66 @@ function isFlightResponse(value: unknown): value is FlightSearchResponse {
   const candidate = value as Partial<FlightSearchResponse>;
   return Boolean(candidate.query && Array.isArray(candidate.routeGroups) && typeof candidate.offerCount === 'number');
 }
+
+// Free-text field: any value is accepted and sent as typed. This list only
+// feeds the datalist, so it is written in English to match the placeholder
+// and what the transit rules are checked against.
+const PASSPORT_COUNTRY_SUGGESTIONS = [
+  'China',
+  'Taiwan',
+  'Hong Kong',
+  'Macau',
+  'Japan',
+  'South Korea',
+  'Mongolia',
+  'India',
+  'Indonesia',
+  'Malaysia',
+  'Singapore',
+  'Thailand',
+  'Vietnam',
+  'Philippines',
+  'Cambodia',
+  'Myanmar',
+  'Laos',
+  'Bangladesh',
+  'Nepal',
+  'Pakistan',
+  'Sri Lanka',
+  'Australia',
+  'New Zealand',
+  'Canada',
+  'United States',
+  'Mexico',
+  'Brazil',
+  'United Kingdom',
+  'Ireland',
+  'France',
+  'Germany',
+  'Italy',
+  'Spain',
+  'Portugal',
+  'Netherlands',
+  'Belgium',
+  'Switzerland',
+  'Austria',
+  'Sweden',
+  'Norway',
+  'Denmark',
+  'Finland',
+  'Poland',
+  'Czechia',
+  'Hungary',
+  'Greece',
+  'Russia',
+  'Türkiye',
+  'Egypt',
+  'Nigeria',
+  'Kenya',
+  'South Africa',
+  'Saudi Arabia',
+  'United Arab Emirates',
+] as const;
 
 export default function TravelGuide() {
   const { lang } = useI18n();
@@ -158,6 +219,32 @@ export default function TravelGuide() {
     }
   };
 
+  // Natural-language lookup: a code, a city or an airport name in either
+  // language. Choosing a row writes the three-letter code, which is what the
+  // search itself validates and sends.
+  const airportSuggestions = (query: string): Suggestion[] =>
+    searchAirports(query).map((item) => {
+      // The city alone leaves the jurisdiction ambiguous, which matters here:
+      // transit rules follow the country, not the city.
+      const city = item.city[language];
+      const country = countryName(item.countryCode, language);
+      // City-states would otherwise read "Singapore / Singapore".
+      const showCountry = country && country !== city;
+      return {
+        value: item.code,
+        label: showCountry ? `${city} / ${country}` : city,
+        hint: item.name[language],
+      };
+    });
+
+  const countrySuggestions = (query: string): Suggestion[] => {
+    const needle = query.trim().toLowerCase();
+    return PASSPORT_COUNTRY_SUGGESTIONS
+      .filter((country) => country.toLowerCase().includes(needle))
+      .slice(0, 8)
+      .map((country) => ({ value: country, label: '' }));
+  };
+
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void runSearch(draft);
@@ -186,27 +273,18 @@ export default function TravelGuide() {
           <form onSubmit={submitSearch} className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-6">
             <label className="text-xs font-medium text-muted lg:col-span-2">
               {copy.originLabel}
-              <input
-                type="text"
+              <SuggestInput
                 value={draft.origin}
-                onChange={(event) => {
-                  setDraft({ ...draft, origin: event.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3) });
+                onChange={(value) => {
+                  setDraft({ ...draft, origin: value });
                   if (originError) setOriginError('');
                 }}
-                list="travel-airports"
-                inputMode="text"
-                autoComplete="off"
-                maxLength={3}
+                suggest={airportSuggestions}
                 placeholder={copy.originPlaceholder}
                 aria-invalid={Boolean(originError)}
                 aria-describedby={originError ? 'origin-error' : 'origin-help'}
                 className={fieldClass}
               />
-              <datalist id="travel-airports">
-                {AIRPORT_SUGGESTIONS.map((item) => (
-                  <option key={item.code} value={item.code}>{item.city[language]}</option>
-                ))}
-              </datalist>
               <span id={originError ? 'origin-error' : 'origin-help'} className={`mt-1.5 block text-[11px] ${originError ? 'text-red-300' : 'text-faint'}`}>
                 {originError || copy.originHelp}
               </span>
@@ -248,20 +326,14 @@ export default function TravelGuide() {
 
             <label className="text-xs font-medium text-muted sm:col-span-2">
               {copy.passportLabel}
-              <input
-                type="text"
+              <SuggestInput
                 value={draft.passportCountry}
-                onChange={(event) => setDraft({ ...draft, passportCountry: event.target.value })}
-                list="passport-countries"
+                onChange={(value) => setDraft({ ...draft, passportCountry: value })}
+                suggest={countrySuggestions}
                 autoComplete="country-name"
                 placeholder={copy.passportPlaceholder}
                 className={fieldClass}
               />
-              <datalist id="passport-countries">
-                {['China', 'India', 'Indonesia', 'Vietnam', 'South Korea', 'United Kingdom', 'United States', 'France', 'Germany'].map((country) => (
-                  <option key={country} value={country} />
-                ))}
-              </datalist>
               <span className="mt-1.5 block text-[11px] text-faint">{copy.passportHelp}</span>
             </label>
 
