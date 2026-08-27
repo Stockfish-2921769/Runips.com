@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "seed:gen": "node scripts/gen-seed.mjs",
-    "seed:ids": "node scripts/fetch-ids.mjs"
+    "seed:ids": "node scripts/fetch-ids.mjs",
+    "community:merge-chats": "node scripts/community-import/merge-chatlab.mjs",
+    "test:community-import": "node --test scripts/community-import/*.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

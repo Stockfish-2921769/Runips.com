@@ -11,7 +11,8 @@ RunIPS is an unofficial student guide for Waseda University IPS. Its current cor
 - Optional written comments and context fields with an explicit “Not disclosed” choice
 - Review sorting, student-level filtering, helpful votes, reports, and review editing
 - A searchable Community for durable topics, with replies, optional accepted replies, duplicate detection, follows, private notifications, reports, and moderation
-- Anonymous authentication, with Google authentication available as an optional provider
+- Anonymous authentication for supervisor reviews, plus persistent Google accounts for Community participation
+- Discourse-shaped Community identities with a unique username, public display name, lightweight avatar and `waseda-verified` badge
 - GDPR-aligned Privacy Notice and Terms and Conditions, plus a privacy checkpoint before opening the review form
 - Private in-app Contact inbox for feedback, content concerns, and privacy requests
 - Self-service account and linked-data erasure
@@ -51,6 +52,7 @@ RunIPS now uses its own PostgreSQL database with a self-hosted Supabase-compatib
 - Community topics, replies, categories, follows, private notifications, reports, and a private moderator queue
 - Full-database Community duplicate search, optional accepted replies, content status controls, and privacy-safe public views that never expose account UUIDs
 - An authenticated, transactional account-erasure RPC
+- Private account profiles, privacy-safe public member views, and server-issued Waseda email verification
 
 Feature pages import data operations through repository modules under `src/features`. This boundary lets the REST layer be replaced by a custom backend later without rewriting the UI or domain model. Course reviews remain a separate future module.
 

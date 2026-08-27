@@ -7,8 +7,9 @@ const STORAGE_KEY = 'runips-lang';
 const languageListeners = new Set<() => void>();
 
 function getLanguageSnapshot(): Lang {
-  if (typeof window === 'undefined') return 'en';
-  return localStorage.getItem(STORAGE_KEY) === 'zh' ? 'zh' : 'en';
+  // Chinese is the site default; English is opt-in and remembered per browser.
+  if (typeof window === 'undefined') return 'zh';
+  return localStorage.getItem(STORAGE_KEY) === 'en' ? 'en' : 'zh';
 }
 
 function subscribeToLanguage(listener: () => void) {
@@ -31,7 +32,7 @@ interface I18nContextValue {
 }
 
 const I18nContext = createContext<I18nContextValue>({
-  lang: 'en',
+  lang: 'zh',
   setLang: () => {},
   t: (key) => key,
   dimensions: [],
@@ -51,7 +52,7 @@ function resolve(obj: Record<string, unknown>, path: string): string {
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const lang = useSyncExternalStore<Lang>(subscribeToLanguage, getLanguageSnapshot, () => 'en');
+  const lang = useSyncExternalStore<Lang>(subscribeToLanguage, getLanguageSnapshot, () => 'zh');
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
