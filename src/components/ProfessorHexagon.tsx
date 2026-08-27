@@ -1,124 +1,180 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+/**
+ * Six-dimension supervisor profile as a radar chart.
+ *
+ * Inline SVG rather than canvas: it stays sharp at any density, inherits the
+ * theme's rule and surface tokens, and carries a real accessible name plus a
+ * table the values can be read from exactly. Radar area is hard to read
+ * precisely, so callers pair this with the numbers rather than replacing them.
+ *
+ * The scale runs 0–max, not 1–max. Ratings start at 1, so anchoring the rings
+ * at 1 would stretch small differences across the whole plot and make a 3.0 and
+ * a 3.5 look far apart. Zero-anchored keeps the shape honest.
+ *
+ * An axis nobody could rate is drawn as absent, never as zero. Plotting "not
+ * applicable" at the centre would pull the shape inward and read as the worst
+ * possible score — the opposite of what it means. Such an axis gets a dashed
+ * spoke and a dimmed caption, and the outline simply does not reach it.
+ */
+
+const RINGS = 5;
+const ANGLE_STEP = (Math.PI * 2) / 6;
+
+// Passes the dark-surface checks in the dataviz palette validator
+// (OKLCH L 0.60, chroma floor, ≥3:1 on #0d0d10). #06b6d4 sits above the band.
+const SERIES = '#0ea5c9';
 
 interface ProfessorHexagonProps {
-  values: number[];
-  labels?: string[];
-  size?: number;
-  maxValue?: number;
+  /** One score per axis in 0–max. `null`, `0` or NaN means the axis has no data. */
+  values: (number | null | undefined)[];
+  labels: string[];
+  max?: number;
   emptyLabel?: string;
   ariaLabel?: string;
 }
 
+// The viewBox is wider than it is tall because the captions sit outside the
+// plot to its left and right. A square box clipped "Research support" and
+// "Communication" in English and "研究自主度" in Chinese.
+const WIDTH = 380;
+const HEIGHT = 240;
+const CX = WIDTH / 2;
+const CY = HEIGHT / 2;
+const RADIUS = 78;
+const LABEL_GAP = 22;
+
+/** Axis n as a point on a circle, starting at the top and going clockwise. */
+function pointAt(index: number, radius: number) {
+  const angle = index * ANGLE_STEP - Math.PI / 2;
+  return {
+    x: CX + Math.cos(angle) * radius,
+    y: CY + Math.sin(angle) * radius,
+  };
+}
+
+function polygon(radius: number) {
+  return Array.from({ length: 6 }, (_, index) => {
+    const { x, y } = pointAt(index, radius);
+    return `${x.toFixed(2)},${y.toFixed(2)}`;
+  }).join(' ');
+}
+
 export default function ProfessorHexagon({
   values,
-  labels = ['一', '二', '三', '四', '五', '六'],
-  size = 180,
-  maxValue = 6,
-  emptyLabel = '暂无数据',
-  ariaLabel = 'Professor rating radar chart',
+  labels,
+  max = 5,
+  emptyLabel = '暂无评价',
+  ariaLabel,
 }: ProfessorHexagonProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const scores = Array.from({ length: 6 }, (_, index) => {
+    const raw = values[index];
+    if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) return null;
+    return Math.min(raw, max);
+  });
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  const ratedIndices = scores.flatMap((score, index) => (score === null ? [] : [index]));
+  const hasData = ratedIndices.length > 0;
 
-    const pad = 34;
-    const cx = size / 2;
-    const cy = size / 2;
-    const radius = size / 2 - pad;
-    const levels = 5;
-
-    const hasData = values.some((v) => v > 0);
-    const clamped = values.map((v) => Math.min(Math.max(v, 0), maxValue));
-
-    ctx.clearRect(0, 0, size, size);
-
-    for (let i = 1; i <= levels; i++) {
-      ctx.beginPath();
-      for (let j = 0; j < 6; j++) {
-        const angle = (Math.PI * 2 * j) / 6 - Math.PI / 2;
-        const r = (radius * i) / levels;
-        const x = cx + r * Math.cos(angle);
-        const y = cy + r * Math.sin(angle);
-        if (j === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.closePath();
-      ctx.strokeStyle = '#e5e7eb';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-
-    for (let j = 0; j < 6; j++) {
-      ctx.beginPath();
-      const angle = (Math.PI * 2 * j) / 6 - Math.PI / 2;
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(cx + radius * Math.cos(angle), cy + radius * Math.sin(angle));
-      ctx.strokeStyle = '#e5e7eb';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-
-    if (hasData) {
-      ctx.beginPath();
-      for (let j = 0; j < 6; j++) {
-        const angle = (Math.PI * 2 * j) / 6 - Math.PI / 2;
-        const r = (radius * clamped[j]) / maxValue;
-        const x = cx + r * Math.cos(angle);
-        const y = cy + r * Math.sin(angle);
-        if (j === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(59, 130, 246, 0.25)';
-      ctx.fill();
-      ctx.strokeStyle = '#3b82f6';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      for (let j = 0; j < 6; j++) {
-        const angle = (Math.PI * 2 * j) / 6 - Math.PI / 2;
-        const r = (radius * clamped[j]) / maxValue;
-        ctx.beginPath();
-        ctx.arc(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#3b82f6';
-        ctx.fill();
-      }
-    } else {
-      ctx.fillStyle = '#9ca3af';
-      ctx.font = `${Math.floor(size / 10)}px system-ui, -apple-system, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(emptyLabel, cx, cy);
-    }
-
-    ctx.fillStyle = '#6b7280';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    for (let j = 0; j < 6; j++) {
-      const angle = (Math.PI * 2 * j) / 6 - Math.PI / 2;
-      const labelRadius = radius + 18;
-      const x = cx + labelRadius * Math.cos(angle);
-      const y = cy + labelRadius * Math.sin(angle) + 4;
-      const label = labels[j] || '';
-      ctx.font = label.length > 6 ? '8px system-ui, -apple-system, sans-serif' : label.length > 4 ? '9px system-ui, -apple-system, sans-serif' : '11px system-ui, -apple-system, sans-serif';
-      ctx.fillText(label, x, y);
-    }
-  }, [values, labels, size, maxValue, emptyLabel]);
+  const vertices = ratedIndices.map((index) => {
+    const { x, y } = pointAt(index, ((scores[index] as number) / max) * RADIUS);
+    return `${x.toFixed(2)},${y.toFixed(2)}`;
+  });
+  // Two rated axes make a line, not an area; one makes a dot. Filling either
+  // would invent an area that no data supports.
+  const outline = vertices.join(' ');
+  const closedShape = ratedIndices.length >= 3;
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={size}
-      height={size}
-      style={{ width: size, height: size }}
-      role="img"
-      aria-label={ariaLabel}
-    />
+    <figure className="m-0">
+      <svg
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        className="h-auto w-full"
+        role="img"
+        aria-label={ariaLabel}
+      >
+        {/* Rings and spokes are reference, not data: they stay recessive. */}
+        <g stroke="var(--rule)" fill="none" strokeWidth={1}>
+          {Array.from({ length: RINGS }, (_, ring) => (
+            <polygon key={ring} points={polygon((RADIUS * (ring + 1)) / RINGS)} />
+          ))}
+          {Array.from({ length: 6 }, (_, index) => {
+            const { x, y } = pointAt(index, RADIUS);
+            return (
+              <line
+                key={index}
+                x1={CX}
+                y1={CY}
+                x2={x}
+                y2={y}
+                // A dashed spoke marks an axis that carries no reading, so a
+                // gap in the outline reads as missing rather than as low.
+                strokeDasharray={scores[index] === null ? '2 3' : undefined}
+              />
+            );
+          })}
+        </g>
+
+        {hasData && (
+          <>
+            {closedShape ? (
+              <polygon points={outline} fill={SERIES} fillOpacity={0.18} stroke={SERIES} strokeWidth={2} />
+            ) : (
+              ratedIndices.length === 2 && (
+                <polyline points={outline} fill="none" stroke={SERIES} strokeWidth={2} />
+              )
+            )}
+            {ratedIndices.map((index) => {
+              const { x, y } = pointAt(index, ((scores[index] as number) / max) * RADIUS);
+              return (
+                <circle
+                  key={index}
+                  cx={x}
+                  cy={y}
+                  r={4}
+                  fill={SERIES}
+                  // A 2px surface ring keeps a vertex readable where it lands on
+                  // a grid line.
+                  stroke="var(--panel)"
+                  strokeWidth={2}
+                />
+              );
+            })}
+          </>
+        )}
+
+        {labels.slice(0, 6).map((label, index) => {
+          const { x, y } = pointAt(index, RADIUS + LABEL_GAP);
+          // Anchor by which side of the centre the caption sits on, so nothing
+          // overhangs the viewBox.
+          const anchor = Math.abs(x - CX) < 1 ? 'middle' : x > CX ? 'start' : 'end';
+          return (
+            <text
+              key={label}
+              x={x}
+              y={y}
+              textAnchor={anchor}
+              dominantBaseline="middle"
+              className="fill-[var(--faint)] text-[10px]"
+              opacity={scores[index] === null ? 0.45 : 1}
+            >
+              {label}
+            </text>
+          );
+        })}
+
+        {!hasData && (
+          <text
+            x={CX}
+            y={CY}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="fill-[var(--faint)] text-[11px]"
+          >
+            {emptyLabel}
+          </text>
+        )}
+      </svg>
+    </figure>
   );
 }

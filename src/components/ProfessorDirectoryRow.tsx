@@ -9,9 +9,11 @@ import { ProfessorReviewSummary } from '@/features/professor-reviews/model';
 interface ProfessorDirectoryRowProps {
   item: Professor;
   reviewSummary?: ProfessorReviewSummary;
+  /** Position in the popularity ranking, 1-based. */
+  rank: number;
 }
 
-export default function ProfessorDirectoryRow({ item, reviewSummary }: ProfessorDirectoryRowProps) {
+export default function ProfessorDirectoryRow({ item, reviewSummary, rank }: ProfessorDirectoryRowProps) {
   const { lang, t } = useI18n();
   const divisionLabel = t(`division.${item.division}` as never) || item.division;
   const translated = PROFESSOR_EN[item.id];
@@ -25,7 +27,7 @@ export default function ProfessorDirectoryRow({ item, reviewSummary }: Professor
 
   return (
     <div className="group grid grid-cols-[36px_minmax(0,1fr)_64px] items-center gap-3 border-b border-rule px-3 py-3 last:border-b-0 hover:bg-panel-raised md:grid-cols-[52px_minmax(0,1fr)_100px_100px_100px_64px] md:px-4">
-      <span className="text-center font-mono text-[11px] tabular-nums text-faint">{String(item.id).padStart(2, '0')}</span>
+      <span className="text-center font-mono text-[11px] tabular-nums text-faint">{String(rank).padStart(2, '0')}</span>
 
       <Link href={`/professors/${item.id}`} className="flex min-w-0 items-center gap-3">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rule bg-background text-[11px] font-bold text-muted group-hover:border-violet/60 group-hover:text-foreground">

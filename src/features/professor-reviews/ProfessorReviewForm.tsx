@@ -8,7 +8,9 @@ import {
   EMPTY_REVIEW_DRAFT,
   ProfessorReview,
   ProfessorReviewDraft,
+  DimensionRating,
   REVIEW_DIMENSION_KEYS,
+  isDimensionAnswered,
   REVIEW_TAGS,
   ReviewTag,
   reviewToDraft,
@@ -71,17 +73,17 @@ export default function ProfessorReviewForm({
     event.preventDefault();
     setError('');
 
-    const ratings = [
-      draft.overallRating,
-      draft.pressureRating,
-      ...REVIEW_DIMENSION_KEYS.map((key) => Number(draft[dimensionFields[key]])),
-    ];
+    // Overall and pressure are the two things every reviewer can answer, so they
+    // stay mandatory. Each dimension needs a deliberate choice too, but "not
+    // applicable" counts as one — what is rejected is leaving it untouched.
+    const requiredRatings = [draft.overallRating, draft.pressureRating];
+    const dimensionsAnswered = REVIEW_DIMENSION_KEYS.every((key) =>
+      isDimensionAnswered(draft[dimensionFields[key]] as DimensionRating),
+    );
     if (
-      ratings.some((rating) => rating < 1 || rating > 5) ||
+      requiredRatings.some((rating) => rating < 1 || rating > 5) ||
+      !dimensionsAnswered ||
       draft.wouldChooseAgain === null ||
-      draft.studentLevel === '' ||
-      draft.relationshipStatus === '' ||
-      draft.communicationLanguage === '' ||
       draft.tags.length > 3
     ) {
       setError(t('review.form.completeAll'));
@@ -144,30 +146,6 @@ export default function ProfessorReviewForm({
             {t('review.form.privacyNote')}
           </div>
 
-          <section aria-labelledby="review-overall-heading">
-            <h3 id="review-overall-heading" className="text-sm font-bold text-foreground">{t('review.form.overallSection')}</h3>
-            <div className="mt-4 grid gap-5 sm:grid-cols-2">
-              <RatingSelector
-                id="overall-rating"
-                label={t('review.overall')}
-                description={t('review.form.overallDesc')}
-                value={draft.overallRating}
-                lowLabel={t('review.scale.poor')}
-                highLabel={t('review.scale.excellent')}
-                onChange={(overallRating) => setDraft((current) => ({ ...current, overallRating }))}
-              />
-              <RatingSelector
-                id="pressure-rating"
-                label={t('review.pressure')}
-                description={t('review.form.pressureDesc')}
-                value={draft.pressureRating}
-                lowLabel={t('review.scale.low')}
-                highLabel={t('review.scale.high')}
-                onChange={(pressureRating) => setDraft((current) => ({ ...current, pressureRating }))}
-              />
-            </div>
-          </section>
-
           <section aria-labelledby="review-dimensions-heading">
             <div>
               <h3 id="review-dimensions-heading" className="text-sm font-bold text-foreground">{t('review.form.dimensionsSection')}</h3>
@@ -182,106 +160,14 @@ export default function ProfessorReviewForm({
                     id={`dimension-${key}`}
                     label={dimensions[index].label}
                     description={dimensions[index].desc}
-                    value={Number(draft[field])}
+                    value={draft[field] as DimensionRating}
+                    allowNotApplicable
+                    notApplicableLabel={t('review.form.notApplicable')}
                     onChange={(value) => setDraft((current) => ({ ...current, [field]: value }))}
                   />
                 );
               })}
             </div>
-          </section>
-
-          <section aria-labelledby="review-context-heading">
-            <h3 id="review-context-heading" className="text-sm font-bold text-foreground">{t('review.form.contextSection')}</h3>
-            <p className="mt-1 text-xs leading-5 text-faint">{t('review.form.contextPrivacy')}</p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-3">
-              <label className="text-xs font-semibold text-muted">
-                {t('review.studentLevel.label')}
-                <select
-                  required
-                  value={draft.studentLevel === null ? 'undisclosed' : draft.studentLevel}
-                  onChange={(event) => setDraft((current) => ({
-                    ...current,
-                    studentLevel: event.target.value === ''
-                      ? ''
-                      : event.target.value === 'undisclosed'
-                        ? null
-                        : event.target.value as NonNullable<ProfessorReviewDraft['studentLevel']>,
-                  }))}
-                  className="mt-2 w-full rounded-lg border border-rule bg-background px-3 py-2.5 text-sm font-normal text-muted outline-none focus:border-violet focus:ring-1 focus:ring-violet"
-                >
-                  <option value="" disabled>{t('review.form.select')}</option>
-                  <option value="undisclosed">{t('review.contextUndisclosed')}</option>
-                  {['masters', 'doctoral', 'researchStudent', 'other'].map((value) => (
-                    <option key={value} value={value}>{t(`review.studentLevel.${value}`)}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-xs font-semibold text-muted">
-                {t('review.relationship.label')}
-                <select
-                  required
-                  value={draft.relationshipStatus === null ? 'undisclosed' : draft.relationshipStatus}
-                  onChange={(event) => setDraft((current) => ({
-                    ...current,
-                    relationshipStatus: event.target.value === ''
-                      ? ''
-                      : event.target.value === 'undisclosed'
-                        ? null
-                        : event.target.value as NonNullable<ProfessorReviewDraft['relationshipStatus']>,
-                  }))}
-                  className="mt-2 w-full rounded-lg border border-rule bg-background px-3 py-2.5 text-sm font-normal text-muted outline-none focus:border-violet focus:ring-1 focus:ring-violet"
-                >
-                  <option value="" disabled>{t('review.form.select')}</option>
-                  <option value="undisclosed">{t('review.contextUndisclosed')}</option>
-                  {['current', 'former'].map((value) => (
-                    <option key={value} value={value}>{t(`review.relationship.${value}`)}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-xs font-semibold text-muted">
-                {t('review.language.label')}
-                <select
-                  required
-                  value={draft.communicationLanguage === null ? 'undisclosed' : draft.communicationLanguage}
-                  onChange={(event) => setDraft((current) => ({
-                    ...current,
-                    communicationLanguage: event.target.value === ''
-                      ? ''
-                      : event.target.value === 'undisclosed'
-                        ? null
-                        : event.target.value as NonNullable<ProfessorReviewDraft['communicationLanguage']>,
-                  }))}
-                  className="mt-2 w-full rounded-lg border border-rule bg-background px-3 py-2.5 text-sm font-normal text-muted outline-none focus:border-violet focus:ring-1 focus:ring-violet"
-                >
-                  <option value="" disabled>{t('review.form.select')}</option>
-                  <option value="undisclosed">{t('review.contextUndisclosed')}</option>
-                  {['ja', 'en', 'zh', 'mixed', 'other'].map((value) => (
-                    <option key={value} value={value}>{t(`review.language.${value}`)}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <fieldset className="mt-5">
-              <legend className="text-xs font-semibold text-muted">{t('review.wouldChooseAgain')}</legend>
-              <div className="mt-2 grid grid-cols-2 gap-2 sm:max-w-sm">
-                {[true, false].map((value) => (
-                  <button
-                    key={String(value)}
-                    type="button"
-                    aria-pressed={draft.wouldChooseAgain === value}
-                    onClick={() => setDraft((current) => ({ ...current, wouldChooseAgain: value }))}
-                    className={`rounded-lg border px-4 py-2.5 text-sm font-semibold ${
-                      draft.wouldChooseAgain === value
-                        ? 'border-violet bg-violet text-white'
-                        : 'border-rule bg-background text-muted hover:text-foreground'
-                    }`}
-                  >
-                    {value ? t('common.yes') : t('common.no')}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
           </section>
 
           <section aria-labelledby="review-tags-heading">
@@ -329,6 +215,61 @@ export default function ProfessorReviewForm({
               placeholder={t('review.form.commentPlaceholder')}
               className="mt-3 w-full resize-y rounded-lg border border-rule bg-background px-4 py-3 text-sm leading-7 text-muted outline-none placeholder:text-faint focus:border-violet focus:ring-1 focus:ring-violet"
             />
+          </section>
+
+          <section aria-labelledby="review-overall-heading">
+            <h3 id="review-overall-heading" className="text-sm font-bold text-foreground">{t('review.form.overallSection')}</h3>
+            <div className="mt-4 grid gap-5 sm:grid-cols-2">
+              <RatingSelector
+                id="overall-rating"
+                label={t('review.overall')}
+                description={t('review.form.overallDesc')}
+                value={draft.overallRating}
+                lowLabel={t('review.scale.poor')}
+                highLabel={t('review.scale.excellent')}
+                onChange={(overallRating) => setDraft((current) => ({ ...current, overallRating }))}
+              />
+              {/* Words rather than 1–5, and cyan rather than violet: this is the
+                  one rating on the form where a high number is not a good
+                  score, and it sat here looking exactly like the ones where it
+                  is. Cyan is what the review list already uses for pressure. */}
+              <RatingSelector
+                id="pressure-rating"
+                label={t('review.pressure')}
+                description={t('review.form.pressureDesc')}
+                value={draft.pressureRating}
+                optionLabels={[
+                  t('review.pressureScale.0'),
+                  t('review.pressureScale.1'),
+                  t('review.pressureScale.2'),
+                  t('review.pressureScale.3'),
+                  t('review.pressureScale.4'),
+                ]}
+                tone="neutral"
+                onChange={(pressureRating) => setDraft((current) => ({ ...current, pressureRating }))}
+              />
+            </div>
+
+            <fieldset className="mt-6">
+              <legend className="text-xs font-semibold text-muted">{t('review.wouldChooseAgain')}</legend>
+              <div className="mt-2 grid grid-cols-2 gap-2 sm:max-w-sm">
+                {[true, false].map((value) => (
+                  <button
+                    key={String(value)}
+                    type="button"
+                    aria-pressed={draft.wouldChooseAgain === value}
+                    onClick={() => setDraft((current) => ({ ...current, wouldChooseAgain: value }))}
+                    className={`rounded-lg border px-4 py-2.5 text-sm font-semibold ${
+                      draft.wouldChooseAgain === value
+                        ? 'border-violet bg-violet text-white'
+                        : 'border-rule bg-background text-muted hover:text-foreground'
+                    }`}
+                  >
+                    {value ? t('common.yes') : t('common.no')}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
           </section>
 
           <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-rule bg-background/45 p-4 text-xs leading-relaxed text-faint">
