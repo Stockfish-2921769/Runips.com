@@ -13,6 +13,17 @@ services:
       - "127.0.0.1:15432:5432"
       - "127.0.0.1:16543:6543"
 
+  # OAuth credentials remain in the server-side .env. Manual linking lets an
+  # existing anonymous review account upgrade to Google without changing its
+  # auth UUID or losing linked contributions.
+  auth:
+    environment:
+      GOTRUE_EXTERNAL_GOOGLE_ENABLED: ${GOOGLE_ENABLED:-false}
+      GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOTRUE_EXTERNAL_GOOGLE_SECRET: ${GOOGLE_SECRET:-}
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: ${API_EXTERNAL_URL}/callback
+      GOTRUE_SECURITY_MANUAL_LINKING_ENABLED: ${MANUAL_LINKING_ENABLED:-false}
+
   # RunIPS currently needs database, REST and Auth only. Keeping the unused
   # services behind an inactive profile saves memory and avoids needless attack
   # surface; they can be enabled later without changing the persisted database.
