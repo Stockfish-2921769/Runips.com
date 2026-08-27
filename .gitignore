@@ -39,6 +39,23 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Local Community archive processing (contains uncommitted chat exports)
+/.local/community-import/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Agent scratch. Subagent working directories land here and have contained raw
+# WeChat archive exports — original group messages that must never reach a
+# public repository.
+/.claude/
+
+# One-off shard workers from the archive import. The reusable tooling lives in
+# scripts/community-import/; these were per-batch throwaways.
+/process_batch.py
+/process_*.py
+
+# Python build artefacts
+__pycache__/
+*.pyc
