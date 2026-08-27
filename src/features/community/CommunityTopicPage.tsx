@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { useI18n } from '@/i18n/LanguageProvider';
-import { getCommunityCopy, interpolateCommunityCopy } from './copy';
+import { getCommunityCopy } from './copy';
+import CommunityAuthor from './CommunityAuthor';
 import CommunityFrame from './CommunityFrame';
 import CommunityState from './CommunityState';
 import CommunityStatusBadge from './CommunityStatusBadge';
@@ -19,11 +20,7 @@ import {
   communityTopicHref,
   isTopicClosed,
 } from './model';
-import {
-  communityAuthorLabel,
-  communityCategoryName,
-  formatCommunityDate,
-} from './presentation';
+import { communityCategoryName, formatCommunityDate } from './presentation';
 import {
   createCommunityReply,
   getCommunityTopic,
@@ -67,10 +64,15 @@ function ReplyCard({
   return (
     <article className={`rounded-xl border ${accepted ? 'border-emerald-500/35 bg-emerald-500/[0.04]' : 'border-rule bg-panel'}`}>
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-rule px-4 py-3 sm:px-5">
-        <div className="flex flex-wrap items-center gap-2 text-[10px] text-faint">
-          <span className="font-semibold text-muted">
-            {communityAuthorLabel(reply.authorLabel, lang, reply.isMine)}
-          </span>
+        <div className="flex flex-wrap items-center gap-3 text-[10px] text-faint">
+          <CommunityAuthor
+            authorLabel={reply.authorLabel}
+            username={reply.authorUsername}
+            displayName={reply.authorDisplayName}
+            avatarColour={reply.authorAvatarColour}
+            badges={reply.authorBadges}
+            isMine={reply.isMine}
+          />
           {reply.isTopicAuthor && (
             <span className="rounded-full border border-violet/25 bg-violet/10 px-2 py-0.5 text-[9px] font-semibold text-violet-300">
               {copy.topic.author}
@@ -130,7 +132,7 @@ function ReplyCard({
 }
 
 export default function CommunityTopicPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, profile, profileLoading } = useAuth();
   const { lang } = useI18n();
   const copy = getCommunityCopy(lang);
   const [topicId, setTopicId] = useState<number | null | undefined>(undefined);
@@ -187,6 +189,10 @@ export default function CommunityTopicPage() {
 
   const currentHref = topicId && topicId > 0 ? communityTopicHref(topicId) : '/community/';
   const loginHref = `/login/?next=${encodeURIComponent(currentHref)}`;
+  const accountHref = `/account/?next=${encodeURIComponent(currentHref)}`;
+  const isPermanent = Boolean(user && !user.is_anonymous && profile?.isPermanent);
+  const canParticipate = Boolean(isPermanent && profile?.profileCompleted);
+  const participationHref = user ? accountHref : loginHref;
 
   const refreshTopic = () => setReloadKey((value) => value + 1);
 
@@ -198,8 +204,8 @@ export default function CommunityTopicPage() {
       setReplyError(copy.topic.replyValidation);
       return;
     }
-    if (!topicId || !user) {
-      window.location.assign(loginHref);
+    if (!topicId || !canParticipate) {
+      window.location.assign(participationHref);
       return;
     }
 
@@ -216,8 +222,8 @@ export default function CommunityTopicPage() {
   };
 
   const handleReport = async (targetType: CommunityReportTarget, targetId: number) => {
-    if (!user) {
-      window.location.assign(loginHref);
+    if (!isPermanent) {
+      window.location.assign(participationHref);
       return;
     }
     if (!window.confirm(copy.topic.reportConfirm)) return;
@@ -252,7 +258,11 @@ export default function CommunityTopicPage() {
   };
 
   const handleSubscription = async () => {
-    if (!topicId || !snapshot.topic || !user) return;
+    if (!topicId || !snapshot.topic) return;
+    if (!isPermanent) {
+      window.location.assign(participationHref);
+      return;
+    }
     const subscribed = !snapshot.topic.isSubscribed;
     setBusyAction('subscription');
     setNotice('');
@@ -285,7 +295,11 @@ export default function CommunityTopicPage() {
       setNotice(copy.topic.moderationInvalidDuplicate);
       return;
     }
-    if (!window.confirm(copy.topic.moderationConfirm)) return;
+    // Hiding is the one action a reader can see the effect of immediately, so it
+    // gets its own wording instead of the generic "are you sure".
+    const confirmMessage =
+      action === 'hide' ? copy.topic.moderationHideConfirm : copy.topic.moderationConfirm;
+    if (!window.confirm(confirmMessage)) return;
 
     setBusyAction(`moderate-${action}`);
     setNotice('');
@@ -381,13 +395,20 @@ export default function CommunityTopicPage() {
                   <h1 className="mt-4 break-words text-2xl font-extrabold leading-tight tracking-tight text-foreground sm:text-3xl">
                     {topic.title}
                   </h1>
-                  <p className="mt-3 text-[10px] text-faint">
-                    {interpolateCommunityCopy(copy.topic.byline, {
-                      author: communityAuthorLabel(topic.authorLabel, lang, topic.isMine),
-                      date: formatCommunityDate(topic.createdAt, lang),
-                    })}
-                    {topic.updatedAt !== topic.createdAt ? ` · ${copy.topic.edited}` : ''}
-                  </p>
+                  <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <CommunityAuthor
+                      authorLabel={topic.authorLabel}
+                      username={topic.authorUsername}
+                      displayName={topic.authorDisplayName}
+                      avatarColour={topic.authorAvatarColour}
+                      badges={topic.authorBadges}
+                      isMine={topic.isMine}
+                    />
+                    <span className="text-[10px] text-faint">
+                      {formatCommunityDate(topic.createdAt, lang)}
+                      {topic.updatedAt !== topic.createdAt ? ` · ${copy.topic.edited}` : ''}
+                    </span>
+                  </div>
                 </header>
 
                 {topic.duplicateOfTopicId && (
@@ -409,7 +430,7 @@ export default function CommunityTopicPage() {
 
                 {topic.status !== 'deleted' && topic.status !== 'hidden' && (user || !topic.isMine) && (
                   <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-rule px-5 py-3 sm:px-7">
-                    {user ? (
+                    {isPermanent ? (
                       <button
                         type="button"
                         onClick={handleSubscription}
@@ -450,24 +471,14 @@ export default function CommunityTopicPage() {
                     </h2>
                     <div className="flex flex-wrap gap-2">
                       {topic.status === 'open' || topic.status === 'resolved' ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleModeration('lock')}
-                            disabled={busyAction.length > 0}
-                            className="rounded-md border border-rule px-3 py-1.5 text-[10px] font-semibold text-muted hover:bg-rule hover:text-foreground disabled:opacity-50"
-                          >
-                            {copy.topic.moderationLock}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleModeration('close')}
-                            disabled={busyAction.length > 0}
-                            className="rounded-md border border-rule px-3 py-1.5 text-[10px] font-semibold text-muted hover:bg-rule hover:text-foreground disabled:opacity-50"
-                          >
-                            {copy.topic.moderationClose}
-                          </button>
-                        </>
+                        <button
+                          type="button"
+                          onClick={() => handleModeration('close')}
+                          disabled={busyAction.length > 0}
+                          className="rounded-md border border-rule px-3 py-1.5 text-[10px] font-semibold text-muted hover:bg-rule hover:text-foreground disabled:opacity-50"
+                        >
+                          {copy.topic.moderationClose}
+                        </button>
                       ) : (
                         <button
                           type="button"
@@ -476,6 +487,18 @@ export default function CommunityTopicPage() {
                           className="rounded-md border border-rule px-3 py-1.5 text-[10px] font-semibold text-muted hover:bg-rule hover:text-foreground disabled:opacity-50"
                         >
                           {copy.topic.moderationReopen}
+                        </button>
+                      )}
+                      {/* Sits apart in red: it is the only button here that takes
+                          the topic away from readers. Reopen brings it back. */}
+                      {topic.status !== 'hidden' && (
+                        <button
+                          type="button"
+                          onClick={() => handleModeration('hide')}
+                          disabled={busyAction.length > 0}
+                          className="rounded-md border border-rose-500/40 px-3 py-1.5 text-[10px] font-semibold text-rose-300 hover:bg-rose-500/10 hover:text-rose-200 disabled:opacity-50"
+                        >
+                          {copy.topic.moderationHide}
                         </button>
                       )}
                     </div>
@@ -577,13 +600,15 @@ export default function CommunityTopicPage() {
                 </h2>
                 {isTopicClosed(topic.status) ? (
                   <p className="mt-3 text-sm text-faint">{copy.topic.replyClosed}</p>
-                ) : !user ? (
+                ) : profileLoading ? (
+                  <p className="mt-3 text-sm text-faint">{copy.state.loading}</p>
+                ) : !canParticipate ? (
                   <div className="mt-4">
                     <Link
-                      href={loginHref}
+                      href={participationHref}
                       className="gradient-button inline-flex rounded-lg px-5 py-3 text-sm font-semibold text-white hover:opacity-90"
                     >
-                      {copy.topic.signInToReply}
+                      {user ? copy.topic.completeProfileToReply : copy.topic.signInToReply}
                     </Link>
                   </div>
                 ) : (

@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '@/i18n/LanguageProvider';
 import { getCommunityCopy, interpolateCommunityCopy } from './copy';
 import CommunityFrame from './CommunityFrame';
+import CommunityAuthor from './CommunityAuthor';
 import CommunityState from './CommunityState';
 import CommunityStatusBadge from './CommunityStatusBadge';
 import {
@@ -18,7 +19,7 @@ import {
   formatCommunityDate,
   normaliseCommunitySearch,
 } from './presentation';
-import { getCommunityIndex, suggestCommunityTopics } from './repository';
+import { getCommunityIndex, getCommunityTopicsPage, suggestCommunityTopics } from './repository';
 
 type SearchState = 'idle' | 'loading' | 'loaded' | 'unavailable' | 'error';
 
@@ -26,6 +27,7 @@ const EMPTY_SNAPSHOT: CommunityIndexSnapshot = {
   topics: [],
   categories: [],
   available: true,
+  hasMore: false,
 };
 
 function topicMatchesFilter(topic: CommunityTopicSummary, filter: CommunityFilter): boolean {
@@ -46,11 +48,17 @@ export default function CommunityIndex() {
   const [searchState, setSearchState] = useState<SearchState>('idle');
   const [filter, setFilter] = useState<CommunityFilter>('latest');
   const [categorySlug, setCategorySlug] = useState('all');
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
+  // The status and category controls are part of the query now, so changing one
+  // refetches the first page instead of narrowing the rows already in memory.
   useEffect(() => {
     let active = true;
 
-    getCommunityIndex()
+    // No loading flash on a filter change: the current rows stay put until the
+    // replacement page resolves.
+    getCommunityIndex({ filter, categorySlug, offset: 0 })
       .then((nextSnapshot) => {
         if (active) setSnapshot(nextSnapshot);
       })
@@ -64,7 +72,64 @@ export default function CommunityIndex() {
     return () => {
       active = false;
     };
-  }, [reloadKey]);
+  }, [reloadKey, filter, categorySlug]);
+
+  // Read through a ref so the observer callback never fetches against a stale
+  // offset, and so a page already in flight is not requested twice. Synced in
+  // an effect rather than during render, which concurrent rendering forbids.
+  const pagingRef = useRef({ offset: 0, hasMore: false, busy: false });
+
+  useEffect(() => {
+    pagingRef.current.offset = snapshot.topics.length;
+    pagingRef.current.hasMore = snapshot.hasMore;
+  }, [snapshot.topics.length, snapshot.hasMore]);
+
+  const loadMore = useCallback(() => {
+    const state = pagingRef.current;
+    if (state.busy || !state.hasMore) return;
+
+    state.busy = true;
+    setLoadingMore(true);
+
+    getCommunityTopicsPage({ filter, categorySlug, offset: state.offset })
+      .then((page) => {
+        setSnapshot((latest) => {
+          const seen = new Set(latest.topics.map((topic) => topic.id));
+          return {
+            ...latest,
+            topics: [...latest.topics, ...page.topics.filter((topic) => !seen.has(topic.id))],
+            hasMore: page.hasMore,
+          };
+        });
+      })
+      .catch(() => {
+        // Stop paging on failure; the list keeps whatever already loaded.
+        setSnapshot((latest) => ({ ...latest, hasMore: false }));
+      })
+      .finally(() => {
+        state.busy = false;
+        setLoadingMore(false);
+      });
+  }, [categorySlug, filter]);
+
+  // Searching swaps in server-side suggestions, so paging is paused until the
+  // query is cleared — otherwise scrolling would append unrelated rows.
+  const paging = !query.trim() && snapshot.hasMore && !loading && !error && snapshot.available;
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !paging) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) loadMore();
+      },
+      { rootMargin: '400px 0px' },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadMore, paging]);
 
   useEffect(() => {
     const searchQuery = query.trim();
@@ -258,7 +323,18 @@ export default function CommunityIndex() {
                       {topic.bodyExcerpt && (
                         <p className="mt-1 line-clamp-1 text-xs leading-6 text-faint">{topic.bodyExcerpt}</p>
                       )}
-                      <p className="mt-2 text-[10px] text-faint">{lastActive}</p>
+                      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <CommunityAuthor
+                          authorLabel={topic.authorLabel}
+                          username={topic.authorUsername}
+                          displayName={topic.authorDisplayName}
+                          avatarColour={topic.authorAvatarColour}
+                          badges={topic.authorBadges}
+                          isMine={topic.isMine}
+                          compact
+                        />
+                        <span className="text-[10px] text-faint">{lastActive}</span>
+                      </div>
                     </div>
                     <div className="min-w-14 self-center text-right">
                       <div className="text-lg font-bold tabular-nums text-muted">{topic.replyCount}</div>
@@ -268,6 +344,16 @@ export default function CommunityIndex() {
                 );
               })}
             </div>
+          )}
+
+          {/* Observed by the IntersectionObserver above; kept out of the DOM
+              while searching so suggestions are never appended to. */}
+          {paging && <div ref={sentinelRef} aria-hidden className="h-px" />}
+
+          {loadingMore && (
+            <p className="py-6 text-center text-xs text-faint" role="status">
+              {copy.state.loading}
+            </p>
           )}
         </div>
       </div>
