@@ -9,6 +9,37 @@ export const REVIEW_DIMENSION_KEYS = [
 
 export type ReviewDimensionKey = (typeof REVIEW_DIMENSION_KEYS)[number];
 
+/**
+ * A dimension score has three states, not two.
+ *
+ * `1`–`5`  the reviewer rated it
+ * `null`   not applicable — the reviewer had no basis to judge this one, so it
+ *          is excluded from every average rather than counted as a low score
+ * `0`      not answered yet; only ever appears in an unsubmitted draft
+ *
+ * The distinction between `null` and `0` is the whole point: someone who was
+ * never a core lab member cannot speak to career support, and a guessed number
+ * from them is indistinguishable from first-hand experience once averaged.
+ */
+export type DimensionRating = number | null;
+
+/** True once the reviewer has made a choice — a score or an explicit "N/A". */
+export function isDimensionAnswered(value: DimensionRating): boolean {
+  return value === null || (value >= 1 && value <= 5);
+}
+
+/**
+ * Which of the five pressure captions an average lands in.
+ *
+ * The form asks for pressure in words ("较大") rather than 1–5, because a high
+ * number there is not a good score. Averages are still numeric, so the reading
+ * has to be mapped back onto the same five words — otherwise the page answers
+ * a question the form never asked.
+ */
+export function pressureBandIndex(value: number): number {
+  return Math.min(4, Math.max(0, Math.round(value) - 1));
+}
+
 export const REVIEW_TAGS = [
   'clearDirection',
   'timelyFeedback',
@@ -36,12 +67,12 @@ export interface ProfessorReview {
   professorId: number;
   overallRating: number;
   pressureRating: number;
-  supervisionRating: number;
-  communicationRating: number;
-  autonomyRating: number;
-  labCultureRating: number;
-  researchSupportRating: number;
-  careerSupportRating: number;
+  supervisionRating: DimensionRating;
+  communicationRating: DimensionRating;
+  autonomyRating: DimensionRating;
+  labCultureRating: DimensionRating;
+  researchSupportRating: DimensionRating;
+  careerSupportRating: DimensionRating;
   wouldChooseAgain: boolean;
   studentLevel: StudentLevel | null;
   relationshipStatus: RelationshipStatus | null;
@@ -58,16 +89,19 @@ export interface ProfessorReview {
 export interface ProfessorReviewDraft {
   overallRating: number;
   pressureRating: number;
-  supervisionRating: number;
-  communicationRating: number;
-  autonomyRating: number;
-  labCultureRating: number;
-  researchSupportRating: number;
-  careerSupportRating: number;
+  supervisionRating: DimensionRating;
+  communicationRating: DimensionRating;
+  autonomyRating: DimensionRating;
+  labCultureRating: DimensionRating;
+  researchSupportRating: DimensionRating;
+  careerSupportRating: DimensionRating;
   wouldChooseAgain: boolean | null;
-  studentLevel: StudentLevel | null | '';
-  relationshipStatus: RelationshipStatus | null | '';
-  communicationLanguage: CommunicationLanguage | null | '';
+  // No longer asked for. The fields stay on the draft so editing an older
+  // review carries its answers through untouched instead of silently clearing
+  // them; new reviews simply leave them null.
+  studentLevel: StudentLevel | null;
+  relationshipStatus: RelationshipStatus | null;
+  communicationLanguage: CommunicationLanguage | null;
   tags: ReviewTag[];
   comment: string;
 }
@@ -79,6 +113,8 @@ export interface ProfessorReviewSummary {
   pressureAverage: number | null;
   wouldChooseAgainPercent: number | null;
   dimensionAverages: Record<ReviewDimensionKey, number | null>;
+  /** How many reviewers rated each dimension, ignoring those who marked it N/A. */
+  dimensionCounts: Record<ReviewDimensionKey, number>;
   ratingDistribution: Record<1 | 2 | 3 | 4 | 5, number>;
   topTags: { tag: ReviewTag; count: number }[];
 }
@@ -100,9 +136,9 @@ export const EMPTY_REVIEW_DRAFT: ProfessorReviewDraft = {
   researchSupportRating: 0,
   careerSupportRating: 0,
   wouldChooseAgain: null,
-  studentLevel: '',
-  relationshipStatus: '',
-  communicationLanguage: '',
+  studentLevel: null,
+  relationshipStatus: null,
+  communicationLanguage: null,
   tags: [],
   comment: '',
 };
@@ -141,6 +177,14 @@ export function emptyReviewSummary(professorId: number): ProfessorReviewSummary 
       researchSupport: null,
       careerSupport: null,
     },
+    dimensionCounts: {
+      supervision: 0,
+      communication: 0,
+      autonomy: 0,
+      labCulture: 0,
+      researchSupport: 0,
+      careerSupport: 0,
+    },
     ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
     topTags: [],
   };
@@ -154,6 +198,15 @@ export function summarizeProfessorReviews(
 
   const average = (values: number[]) =>
     Math.round((values.reduce((total, value) => total + value, 0) / values.length) * 10) / 10;
+  // Reviewers who marked a dimension not applicable are dropped before averaging
+  // rather than counted as zero, and a dimension nobody could rate has no score
+  // at all. This mirrors what avg() does in `professor_review_summaries`.
+  const rated = (pick: (review: ProfessorReview) => DimensionRating) =>
+    reviews.map(pick).filter((value): value is number => value !== null && value > 0);
+  const dimensionAverage = (pick: (review: ProfessorReview) => DimensionRating) => {
+    const values = rated(pick);
+    return values.length > 0 ? average(values) : null;
+  };
   const tagCounts = new Map<ReviewTag, number>();
   const ratingDistribution: ProfessorReviewSummary['ratingDistribution'] = {
     1: 0,
@@ -180,12 +233,20 @@ export function summarizeProfessorReviews(
     pressureAverage: average(reviews.map((review) => review.pressureRating)),
     wouldChooseAgainPercent: Math.round((chooseAgainCount / reviews.length) * 100),
     dimensionAverages: {
-      supervision: average(reviews.map((review) => review.supervisionRating)),
-      communication: average(reviews.map((review) => review.communicationRating)),
-      autonomy: average(reviews.map((review) => review.autonomyRating)),
-      labCulture: average(reviews.map((review) => review.labCultureRating)),
-      researchSupport: average(reviews.map((review) => review.researchSupportRating)),
-      careerSupport: average(reviews.map((review) => review.careerSupportRating)),
+      supervision: dimensionAverage((review) => review.supervisionRating),
+      communication: dimensionAverage((review) => review.communicationRating),
+      autonomy: dimensionAverage((review) => review.autonomyRating),
+      labCulture: dimensionAverage((review) => review.labCultureRating),
+      researchSupport: dimensionAverage((review) => review.researchSupportRating),
+      careerSupport: dimensionAverage((review) => review.careerSupportRating),
+    },
+    dimensionCounts: {
+      supervision: rated((review) => review.supervisionRating).length,
+      communication: rated((review) => review.communicationRating).length,
+      autonomy: rated((review) => review.autonomyRating).length,
+      labCulture: rated((review) => review.labCultureRating).length,
+      researchSupport: rated((review) => review.researchSupportRating).length,
+      careerSupport: rated((review) => review.careerSupportRating).length,
     },
     ratingDistribution,
     topTags: [...tagCounts.entries()]

@@ -1,16 +1,25 @@
 'use client';
 
 import { useI18n } from '@/i18n/LanguageProvider';
-import { ProfessorReviewSummary, REVIEW_DIMENSION_KEYS } from './model';
+import ProfessorHexagon from '@/components/ProfessorHexagon';
+import { ProfessorReviewSummary, REVIEW_DIMENSION_KEYS, pressureBandIndex } from './model';
 
 interface ProfessorReviewOverviewProps {
   summary: ProfessorReviewSummary;
 }
 
-function MetricCard({ value, label, note }: { value: string; label: string; note?: string }) {
+function MetricCard({
+  value,
+  valueSuffix,
+  label,
+  note,
+}: { value: string; valueSuffix?: string; label: string; note?: string }) {
   return (
     <div className="min-w-0 rounded-lg border border-rule bg-background/45 px-4 py-4">
-      <div className="text-xl font-bold tracking-tight tabular-nums text-foreground sm:text-2xl">{value}</div>
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-xl font-bold tracking-tight tabular-nums text-foreground sm:text-2xl">{value}</span>
+        {valueSuffix && <span className="text-xs font-semibold text-cyan">{valueSuffix}</span>}
+      </div>
       <div className="mt-1 text-[10px] font-medium text-muted">{label}</div>
       {note && <div className="mt-1 text-[9px] text-faint">{note}</div>}
     </div>
@@ -44,8 +53,16 @@ export default function ProfessorReviewOverview({ summary }: ProfessorReviewOver
               value={summary.wouldChooseAgainPercent === null ? '—' : `${summary.wouldChooseAgainPercent}%`}
               label={t('review.wouldChooseAgainShort')}
             />
+            {/* The number alone repeats the problem the form had: on a page where
+                every other figure means "higher is better", a bare 4.0 reads as
+                a grade. The caption is the same word the reviewer picked. */}
             <MetricCard
               value={summary.pressureAverage?.toFixed(1) ?? '—'}
+              valueSuffix={
+                summary.pressureAverage === null
+                  ? undefined
+                  : t(`review.pressureScale.${pressureBandIndex(summary.pressureAverage)}`)
+              }
               label={t('review.pressure')}
               note={t('review.pressureNote')}
             />
@@ -91,22 +108,44 @@ export default function ProfessorReviewOverview({ summary }: ProfessorReviewOver
           <p className="mt-2 text-xs leading-6 text-faint">{t('review.dimensionsIntro')}</p>
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {dimensions.map((dimension, index) => {
-            const value = summary.dimensionAverages[REVIEW_DIMENSION_KEYS[index]];
-            return (
-              <div key={REVIEW_DIMENSION_KEYS[index]} className="rounded-lg border border-rule bg-background/45 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs font-semibold text-muted">{dimension.label}</span>
-                  <span className="text-xs font-bold tabular-nums text-cyan">{value?.toFixed(1) ?? '—'}</span>
+        {/* The radar shows the shape of the profile; the list beside it carries
+            the exact numbers, which area alone cannot convey. */}
+        <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)]">
+          <div className="flex justify-center lg:justify-start">
+            <ProfessorHexagon
+              values={REVIEW_DIMENSION_KEYS.map((key) => summary.dimensionAverages[key])}
+              labels={dimensions.map((dimension) => dimension.label)}
+              max={5}
+              emptyLabel={t('review.noDimensionData')}
+              ariaLabel={t('review.dimensionsTitle')}
+            />
+          </div>
+
+          <dl className="grid gap-3 sm:grid-cols-2">
+            {dimensions.map((dimension, index) => {
+              const key = REVIEW_DIMENSION_KEYS[index];
+              const value = summary.dimensionAverages[key];
+              const ratedBy = summary.dimensionCounts[key];
+              return (
+                <div key={key} className="rounded-lg border border-rule bg-background/45 p-4">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-xs font-semibold text-muted">{dimension.label}</dt>
+                    <dd className={`text-sm font-bold tabular-nums ${value === null ? 'text-faint' : 'text-cyan'}`}>
+                      {value?.toFixed(1) ?? '—'}
+                      <span className="ml-0.5 text-[10px] font-normal text-faint">/5</span>
+                    </dd>
+                  </div>
+                  {/* Reviewers who marked this one not applicable are excluded, so
+                      the headline review count would overstate it. Say who
+                      actually rated this dimension instead. */}
+                  <p className="mt-1 text-[9px] text-faint">
+                    {ratedBy > 0 ? t('review.dimensionRatedBy', { n: ratedBy }) : t('review.dimensionNotRated')}
+                  </p>
+                  <p className="mt-2 text-[10px] leading-5 text-faint">{dimension.desc}</p>
                 </div>
-                <div className="mt-3 h-1 overflow-hidden rounded-full bg-rule">
-                  <div className="h-full rounded-full bg-cyan" style={{ width: value ? `${(value / 5) * 100}%` : '0%' }} />
-                </div>
-                <p className="mt-3 text-[10px] leading-5 text-faint">{dimension.desc}</p>
-              </div>
-            );
-          })}
+              );
+            })}
+          </dl>
         </div>
       </section>
     </div>

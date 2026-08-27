@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import {
   CommunicationLanguage,
+  DimensionRating,
   ProfessorReview,
   ProfessorReviewDraft,
   ProfessorReviewSummary,
@@ -9,6 +10,7 @@ import {
   ReviewTag,
   ReviewVoteValue,
   StudentLevel,
+  isDimensionAnswered,
   summarizeProfessorReviews,
 } from './model';
 
@@ -17,12 +19,12 @@ interface PublicReviewRow {
   professor_id: number;
   overall_rating: number;
   pressure_rating: number;
-  supervision_rating: number;
-  communication_rating: number;
-  autonomy_rating: number;
-  lab_culture_rating: number;
-  research_support_rating: number;
-  career_support_rating: number;
+  supervision_rating: number | null;
+  communication_rating: number | null;
+  autonomy_rating: number | null;
+  lab_culture_rating: number | null;
+  research_support_rating: number | null;
+  career_support_rating: number | null;
   would_choose_again: boolean;
   student_level: StudentLevel | null;
   relationship_status: RelationshipStatus | null;
@@ -52,6 +54,12 @@ interface ReviewSummaryRow {
   lab_culture_average: number | null;
   research_support_average: number | null;
   career_support_average: number | null;
+  supervision_count: number | null;
+  communication_count: number | null;
+  autonomy_count: number | null;
+  lab_culture_count: number | null;
+  research_support_count: number | null;
+  career_support_count: number | null;
 }
 
 const MISSING_RESOURCE_CODES = new Set(['42P01', 'PGRST200', 'PGRST205']);
@@ -60,18 +68,24 @@ function isMissingReviewResource(error: { code?: string } | null): boolean {
   return !!error?.code && MISSING_RESOURCE_CODES.has(error.code);
 }
 
+function toDimension(value: number | null): DimensionRating {
+  return value === null ? null : Number(value);
+}
+
 function mapReview(row: PublicReviewRow, viewerVote: ReviewVoteValue | null = null): ProfessorReview {
   return {
     id: row.id,
     professorId: row.professor_id,
     overallRating: Number(row.overall_rating),
     pressureRating: Number(row.pressure_rating),
-    supervisionRating: Number(row.supervision_rating),
-    communicationRating: Number(row.communication_rating),
-    autonomyRating: Number(row.autonomy_rating),
-    labCultureRating: Number(row.lab_culture_rating),
-    researchSupportRating: Number(row.research_support_rating),
-    careerSupportRating: Number(row.career_support_rating),
+    // Number(null) is 0, which would turn "not applicable" into the lowest
+    // possible score, so nulls are carried through untouched.
+    supervisionRating: toDimension(row.supervision_rating),
+    communicationRating: toDimension(row.communication_rating),
+    autonomyRating: toDimension(row.autonomy_rating),
+    labCultureRating: toDimension(row.lab_culture_rating),
+    researchSupportRating: toDimension(row.research_support_rating),
+    careerSupportRating: toDimension(row.career_support_rating),
     wouldChooseAgain: row.would_choose_again,
     studentLevel: row.student_level,
     relationshipStatus: row.relationship_status,
@@ -86,25 +100,30 @@ function mapReview(row: PublicReviewRow, viewerVote: ReviewVoteValue | null = nu
   };
 }
 
-function draftPayload(professorId: number, draft: ProfessorReviewDraft) {
-  if (
-    draft.studentLevel === '' ||
-    draft.relationshipStatus === '' ||
-    draft.communicationLanguage === ''
-  ) {
-    throw new Error('Review context must be selected explicitly');
+/**
+ * `0` means the reviewer never touched that dimension. Writing it would fail the
+ * 1-5 check constraint anyway, but failing here says which state was wrong
+ * instead of surfacing a database error.
+ */
+function dimensionForWrite(value: DimensionRating): number | null {
+  if (value === null) return null;
+  if (!isDimensionAnswered(value)) {
+    throw new Error('Every dimension needs a score or an explicit "not applicable"');
   }
+  return value;
+}
 
+function draftPayload(professorId: number, draft: ProfessorReviewDraft) {
   return {
     professor_id: professorId,
     overall_rating: draft.overallRating,
     pressure_rating: draft.pressureRating,
-    supervision_rating: draft.supervisionRating,
-    communication_rating: draft.communicationRating,
-    autonomy_rating: draft.autonomyRating,
-    lab_culture_rating: draft.labCultureRating,
-    research_support_rating: draft.researchSupportRating,
-    career_support_rating: draft.careerSupportRating,
+    supervision_rating: dimensionForWrite(draft.supervisionRating),
+    communication_rating: dimensionForWrite(draft.communicationRating),
+    autonomy_rating: dimensionForWrite(draft.autonomyRating),
+    lab_culture_rating: dimensionForWrite(draft.labCultureRating),
+    research_support_rating: dimensionForWrite(draft.researchSupportRating),
+    career_support_rating: dimensionForWrite(draft.careerSupportRating),
     would_choose_again: draft.wouldChooseAgain,
     student_level: draft.studentLevel,
     relationship_status: draft.relationshipStatus,
@@ -198,6 +217,14 @@ export async function getAllProfessorReviewSummaries(): Promise<Record<number, P
         labCulture: row.lab_culture_average === null ? null : Number(row.lab_culture_average),
         researchSupport: row.research_support_average === null ? null : Number(row.research_support_average),
         careerSupport: row.career_support_average === null ? null : Number(row.career_support_average),
+      },
+      dimensionCounts: {
+        supervision: Number(row.supervision_count ?? 0),
+        communication: Number(row.communication_count ?? 0),
+        autonomy: Number(row.autonomy_count ?? 0),
+        labCulture: Number(row.lab_culture_count ?? 0),
+        researchSupport: Number(row.research_support_count ?? 0),
+        careerSupport: Number(row.career_support_count ?? 0),
       },
       ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
       topTags: [],

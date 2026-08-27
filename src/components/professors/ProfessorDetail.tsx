@@ -69,6 +69,15 @@ export default function ProfessorDetail({ id }: { id: string }) {
     };
   }, [professorId, validProfessorId]);
 
+  // Records the visit that feeds `professor_ranking.score`. The RPC has always
+  // existed and been granted to anon, but nothing called it, so `click_count`
+  // never moved off its seed values. Fire-and-forget: a failed count must never
+  // block the page, and the ranking tolerates a missed increment.
+  useEffect(() => {
+    if (!validProfessorId) return;
+    void supabase.rpc('increment_clicks', { p_professor_id: professorId });
+  }, [professorId, validProfessorId]);
+
   const refreshReviews = async () => {
     if (!validProfessorId) return;
     try {

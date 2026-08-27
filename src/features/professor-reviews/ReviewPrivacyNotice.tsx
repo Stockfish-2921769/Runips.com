@@ -32,7 +32,7 @@ export default function ReviewPrivacyNotice({
 
   const protections = [
     t('review.privacyNotice.publicAnonymous'),
-    t('review.privacyNotice.contextOptional'),
+    t('review.privacyNotice.dimensionsOptional'),
     t('review.privacyNotice.commentOptional'),
     t('review.privacyNotice.limit'),
   ];

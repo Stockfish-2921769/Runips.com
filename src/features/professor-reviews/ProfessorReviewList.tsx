@@ -6,7 +6,7 @@ import {
   ProfessorReview,
   ReviewSort,
   ReviewVoteValue,
-  StudentLevel,
+  pressureBandIndex,
 } from './model';
 
 interface ProfessorReviewListProps {
@@ -28,19 +28,17 @@ export default function ProfessorReviewList({
 }: ProfessorReviewListProps) {
   const { lang, t } = useI18n();
   const [sort, setSort] = useState<ReviewSort>('newest');
-  const [studentLevel, setStudentLevel] = useState<StudentLevel | 'all'>('all');
-
+  // Filtering by student level is gone with the question that fed it: reviews
+  // written from now on carry no level, so any specific choice would quietly
+  // hide every new review.
   const visibleReviews = useMemo(() => {
-    const filtered = studentLevel === 'all'
-      ? reviews
-      : reviews.filter((review) => review.studentLevel === studentLevel);
-    return [...filtered].sort((a, b) => {
+    return [...reviews].sort((a, b) => {
       if (sort === 'helpful') return b.helpfulCount - a.helpfulCount || Date.parse(b.createdAt) - Date.parse(a.createdAt);
       if (sort === 'highest') return b.overallRating - a.overallRating || Date.parse(b.createdAt) - Date.parse(a.createdAt);
       if (sort === 'lowest') return a.overallRating - b.overallRating || Date.parse(b.createdAt) - Date.parse(a.createdAt);
       return Date.parse(b.createdAt) - Date.parse(a.createdAt);
     });
-  }, [reviews, sort, studentLevel]);
+  }, [reviews, sort]);
 
   const locale = lang === 'zh' ? 'zh-CN' : 'en-GB';
   const dateFormatter = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric' });
@@ -58,18 +56,6 @@ export default function ProfessorReviewList({
           <p className="mt-1 text-[10px] text-faint">{t('review.reviewCount', { n: reviews.length })}</p>
         </div>
         <div className="flex flex-col gap-2 min-[430px]:flex-row">
-          <label className="sr-only" htmlFor="review-level-filter">{t('review.filterByLevel')}</label>
-          <select
-            id="review-level-filter"
-            value={studentLevel}
-            onChange={(event) => setStudentLevel(event.target.value as StudentLevel | 'all')}
-            className={selectClassName}
-          >
-            <option value="all">{t('review.studentLevel.all')}</option>
-            {['masters', 'doctoral', 'researchStudent', 'other'].map((value) => (
-              <option key={value} value={value}>{t(`review.studentLevel.${value}`)}</option>
-            ))}
-          </select>
           <label className="sr-only" htmlFor="review-sort">{t('review.sort.label')}</label>
           <select
             id="review-sort"
@@ -115,22 +101,30 @@ export default function ProfessorReviewList({
                     <div className="bg-panel-raised p-4 text-center md:py-5">
                       <div className="text-2xl font-bold tabular-nums text-cyan">{review.pressureRating.toFixed(1)}</div>
                       <div className="mt-1 text-[8px] font-bold uppercase tracking-wide text-faint">{t('review.pressure')}</div>
+                      <div className="mt-0.5 text-[9px] font-semibold text-cyan">
+                        {t(`review.pressureScale.${pressureBandIndex(review.pressureRating)}`)}
+                      </div>
                     </div>
                   </div>
 
                   <div className="p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3 border-b border-rule pb-4">
                       <div>
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-muted">
-                          {contextLabels.length > 0 ? contextLabels.map((label, index) => (
-                            <span key={`${index}-${label}`} className="contents">
-                              {index > 0 && <span className="text-rule">/</span>}
-                              <span>{label}</span>
-                            </span>
-                          )) : (
-                            <span>{t('review.contextUndisclosed')}</span>
-                          )}
-                        </div>
+                        {/* Reviews written while the background questions existed
+                            keep showing what their authors chose to share. The
+                            questions are no longer asked, so an absent label
+                            means "never collected" — saying "not disclosed"
+                            would blame the reviewer for a field we removed. */}
+                        {contextLabels.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-muted">
+                            {contextLabels.map((label, index) => (
+                              <span key={`${index}-${label}`} className="contents">
+                                {index > 0 && <span className="text-rule">/</span>}
+                                <span>{label}</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <p className="mt-1.5 text-[9px] text-faint">
                           {dateFormatter.format(new Date(review.createdAt))}
                           {review.updatedAt !== review.createdAt ? ` · ${t('review.edited')}` : ''}
