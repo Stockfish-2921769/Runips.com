@@ -16,6 +16,19 @@ import {
   reviewToDraft,
 } from './model';
 
+/**
+ * 很小 to 很大 as cool to warm. `fill` carries white text at 4.9:1 or better
+ * when selected; `accent` reads at 7:1 or better on the panel when not, so the
+ * gradient is legible before anything is picked.
+ */
+const PRESSURE_COLORS = [
+  { fill: '#0e7490', accent: '#22d3ee' },
+  { fill: '#0f766e', accent: '#2dd4bf' },
+  { fill: '#a16207', accent: '#facc15' },
+  { fill: '#c2410c', accent: '#fb923c' },
+  { fill: '#b91c1c', accent: '#f87171' },
+];
+
 interface ProfessorReviewFormProps {
   professorName: string;
   initialReview: ProfessorReview | null;
@@ -229,10 +242,10 @@ export default function ProfessorReviewForm({
                 highLabel={t('review.scale.excellent')}
                 onChange={(overallRating) => setDraft((current) => ({ ...current, overallRating }))}
               />
-              {/* Words rather than 1–5, and cyan rather than violet: this is the
-                  one rating on the form where a high number is not a good
-                  score, and it sat here looking exactly like the ones where it
-                  is. Cyan is what the review list already uses for pressure. */}
+              {/* Words rather than 1-5, and a cool-to-warm ramp rather than the
+                  violet used everywhere else: this is the one rating on the
+                  form where a high number is not a good score, and it sat here
+                  looking exactly like the ones where it is. */}
               <RatingSelector
                 id="pressure-rating"
                 label={t('review.pressure')}
@@ -246,6 +259,7 @@ export default function ProfessorReviewForm({
                   t('review.pressureScale.4'),
                 ]}
                 tone="neutral"
+                optionColors={PRESSURE_COLORS}
                 onChange={(pressureRating) => setDraft((current) => ({ ...current, pressureRating }))}
               />
             </div>
