@@ -2,15 +2,19 @@
 
 import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
+import RewardSticker from '@/components/RewardSticker';
 import ProfessorDirectoryRow from '@/components/ProfessorDirectoryRow';
 import { Professor, DIVISIONS } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useI18n } from '@/i18n/LanguageProvider';
-import { ProfessorReviewSummary, REVIEW_DIMENSION_KEYS } from '@/features/professor-reviews/model';
+import { ProfessorReviewSummary, REVIEW_DIMENSION_KEYS, pressureBandIndex } from '@/features/professor-reviews/model';
 import { getAllProfessorReviewSummaries } from '@/features/professor-reviews/repository';
 import { PROFESSOR_EN } from '@/data/professorNames';
 
 type DivisionFilter = '全部' | (typeof DIVISIONS)[number];
+
+// 董世杰 / Hippo8!415 — the seeded demo entry used as the worked example.
+const DEMO_PROFESSOR_ID = 32;
 
 export default function Home() {
   const { lang, t, dimensions } = useI18n();
@@ -23,7 +27,14 @@ export default function Home() {
 
   const fetchData = useCallback(() => {
     Promise.all([
-      supabase.from('professors').select('*').order('id', { ascending: true }),
+      // `professor_ranking` is `professors` plus a popularity score weighted
+      // towards click_count. Ordering here rather than by id makes the list a
+      // ranking; `id` only breaks ties so the order stays stable.
+      supabase
+        .from('professor_ranking')
+        .select('*')
+        .order('score', { ascending: false })
+        .order('id', { ascending: true }),
       getAllProfessorReviewSummaries().catch(() => ({})),
     ]).then(([profRes, rateRes]) => {
       if (!profRes.error && profRes.data) {
@@ -50,7 +61,13 @@ export default function Home() {
       .some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
   });
 
-  const previewItem = filtered[0] ?? items[0];
+  // The card under the search box is a worked example of what a supervisor page
+  // looks like, so it holds the demo entry rather than whoever currently ranks
+  // first. While the visitor is searching it follows the results instead.
+  const demoItem = items.find((item) => item.id === DEMO_PROFESSOR_ID);
+  const previewItem = normalizedQuery || activeTab !== '全部'
+    ? filtered[0] ?? demoItem ?? items[0]
+    : demoItem ?? filtered[0] ?? items[0];
   const previewTranslation = previewItem ? PROFESSOR_EN[previewItem.id] : undefined;
   const previewName = previewItem
     ? lang === 'en' && previewTranslation
@@ -115,6 +132,8 @@ export default function Home() {
                 {t('hero.explore')}
               </button>
             </div>
+
+            <RewardSticker />
           </div>
 
           <div className="mx-auto mt-14 max-w-4xl rounded-2xl border border-rule bg-panel p-2 sm:mt-16">
@@ -154,7 +173,20 @@ export default function Home() {
                     [t('review.overall'), previewSummary?.overallAverage?.toFixed(1) ?? '—'],
                     [t('review.studentReviews'), previewSummary?.reviewCount ?? 0],
                     [t('review.wouldChooseAgainShort'), previewChooseAgain === null || previewChooseAgain === undefined ? '—' : `${previewChooseAgain}%`],
-                    [t('review.pressure'), previewSummary?.pressureAverage?.toFixed(1) ?? '—'],
+                    // Four of the five figures in this strip mean "higher is
+                    // better". Pressure does not, so it carries the same word
+                    // the reviewer chose rather than a bare number.
+                    [
+                      t('review.pressure'),
+                      previewSummary?.pressureAverage == null ? '—' : (
+                        <>
+                          {previewSummary.pressureAverage.toFixed(1)}
+                          <span className="ml-1 text-[10px] font-semibold text-cyan">
+                            {t(`review.pressureScale.${pressureBandIndex(previewSummary.pressureAverage)}`)}
+                          </span>
+                        </>
+                      ),
+                    ],
                     [t('stats.citations'), previewItem.scholar_citations ?? t('common.tbd')],
                   ].map(([label, value], index) => (
                     <div key={String(label)} className={`bg-panel-raised px-3 py-4 text-center ${index === 4 ? 'col-span-2 sm:col-span-1' : ''}`}>
@@ -195,6 +227,9 @@ export default function Home() {
       <section className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 sm:py-24">
         <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{t('hero.whyTitle')}</h2>
         <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-muted">{t('hero.whyDesc')}</p>
+        {/* A roadmap note rather than part of the claim above, so it gets its
+            own line and a quieter weight. */}
+        <p className="mx-auto mt-2 max-w-2xl text-sm leading-7 text-faint">{t('hero.whyNote')}</p>
         <div className="mt-10 grid gap-3 text-left sm:grid-cols-3">
           {[dimensions[0], dimensions[2], dimensions[3]].map((dimension, index) => (
             <div key={dimension.label} className="rounded-xl border border-rule bg-panel p-5">
@@ -247,8 +282,13 @@ export default function Home() {
           ) : filtered.length === 0 ? (
             <div className="py-16 text-center text-sm text-muted">{normalizedQuery ? t('home.noSearchResults') : t('common.empty')}</div>
           ) : (
-            filtered.map((item) => (
-              <ProfessorDirectoryRow key={item.id} item={item} reviewSummary={reviewSummaries[item.id]} />
+            filtered.map((item, index) => (
+              <ProfessorDirectoryRow
+                key={item.id}
+                item={item}
+                rank={index + 1}
+                reviewSummary={reviewSummaries[item.id]}
+              />
             ))
           )}
         </div>
