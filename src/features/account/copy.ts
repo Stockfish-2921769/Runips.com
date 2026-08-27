@@ -49,7 +49,7 @@ const copy = {
       emailPrivate: 'Visible only to you and authorised RunIPS operators.',
       googleLinked: 'Google identity linked',
       googleMissing: 'Google identity not linked',
-      badgeMeaning: 'This badge confirms a verified Waseda-domain Google Workspace email. It does not prove current student or IPS status.',
+      badgeMeaning: 'This badge confirms a verified email address on waseda.jp or a sub-domain of it. It does not prove current student or IPS status.',
     },
     data: {
       title: 'Account and data',
@@ -121,7 +121,7 @@ const copy = {
       emailPrivate: '只有你本人和获得授权的 RunIPS 运维人员可以查看。',
       googleLinked: '已关联 Google 身份',
       googleMissing: '尚未关联 Google 身份',
-      badgeMeaning: '该标识仅确认已验证的早稻田域名 Google Workspace 邮箱，不代表现役学生或 IPS 身份。',
+      badgeMeaning: '该标识仅确认已验证的 waseda.jp 域名（含子域）邮箱，不代表现役学生或 IPS 身份。',
     },
     data: {
       title: '账号与数据',
