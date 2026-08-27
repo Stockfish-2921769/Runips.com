@@ -15,13 +15,18 @@ interface BaseProps {
    * Words carry no scale to run down.
    */
   optionLabels?: [string, string, string, string, string];
-  /**
-   * `quality` is the violet used for everything where higher is better.
-   * `neutral` is the cyan the review list already uses for pressure, and is
-   * deliberately not a red ramp: colouring high pressure as danger would
-   * editorialise a measure we tell reviewers is neutral.
-   */
+  /** `quality` is the violet used for everything where higher is better. */
   tone?: 'quality' | 'neutral';
+  /**
+   * Per-option colours, one per step, running cool to warm.
+   *
+   * This is a sequential intensity ramp of the kind a heat map uses, not a
+   * good-to-bad one: paired with the captions 很小 through 很大 it reads as how
+   * much, which is what pressure measures. `fill` is dark enough for white text
+   * when the step is selected; `accent` is light enough to read on the panel
+   * when it is not, so the whole scale is visible before anything is chosen.
+   */
+  optionColors?: { fill: string; accent: string }[];
 }
 
 /**
@@ -57,6 +62,7 @@ export default function RatingSelector({
   allowNotApplicable = false,
   notApplicableLabel,
   optionLabels,
+  optionColors,
   tone = 'quality',
   onChange,
 }: RatingSelectorProps) {
@@ -86,15 +92,32 @@ export default function RatingSelector({
             onClick={() => emit(score)}
             aria-pressed={value === score}
             aria-label={`${label}: ${optionLabels ? optionLabels[score - 1] : score}`}
-            className={`min-h-9 flex-1 rounded-md border px-1 py-1 leading-tight focus-visible:outline-none focus-visible:ring-1 ${focusRing} ${
+            className={`min-h-9 flex-1 rounded-md border px-1 py-1 leading-tight transition-colors focus-visible:outline-none focus-visible:ring-1 ${focusRing} ${
               optionLabels ? 'text-[10px] font-semibold' : 'text-sm font-bold'
             } ${
-              value === score
-                ? selectedStyle
-                : notApplicable
-                  ? 'border-rule/60 bg-background text-faint/40'
-                  : hoverStyle
+              optionColors
+                ? ''
+                : value === score
+                  ? selectedStyle
+                  : notApplicable
+                    ? 'border-rule/60 bg-background text-faint/40'
+                    : hoverStyle
             }`}
+            style={
+              optionColors
+                ? value === score
+                  ? {
+                      backgroundColor: optionColors[score - 1].fill,
+                      borderColor: optionColors[score - 1].fill,
+                      color: '#ffffff',
+                    }
+                  : {
+                      backgroundColor: 'var(--background)',
+                      borderColor: `${optionColors[score - 1].accent}55`,
+                      color: optionColors[score - 1].accent,
+                    }
+                : undefined
+            }
           >
             {optionLabels ? optionLabels[score - 1] : score}
           </button>
