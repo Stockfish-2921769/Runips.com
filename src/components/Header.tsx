@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import AccountAvatar from '@/components/AccountAvatar';
+import WasedaVerifiedBadge from '@/components/WasedaVerifiedBadge';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/AuthProvider';
 import { useI18n } from '@/i18n/LanguageProvider';
@@ -15,7 +17,7 @@ const LANGS: { code: Lang; label: string }[] = [
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth();
   const { lang, setLang, t } = useI18n();
 
   const handleLogout = async () => {
@@ -24,9 +26,11 @@ export default function Header() {
     window.location.href = '/';
   };
 
-  const userInitial = user?.is_anonymous
-    ? 'R'
-    : user?.user_metadata?.name?.[0] || user?.email?.[0]?.toUpperCase() || 'U';
+  const accountLabel = user?.is_anonymous
+    ? t('login.guest')
+    : profile?.profileCompleted
+      ? profile.displayName
+      : t('common.account');
 
   return (
     <header className="sticky top-0 z-50 border-b border-rule/70 bg-background">
@@ -67,20 +71,29 @@ export default function Header() {
               <button
                 onClick={() => setUserMenu(!userMenu)}
                 className="flex items-center px-1 py-1"
-                aria-label={user.is_anonymous ? t('login.guest') : user.user_metadata?.name || user.email || 'Account'}
+                aria-label={accountLabel}
                 aria-expanded={userMenu}
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-md border border-rule bg-panel text-xs font-bold text-foreground">
-                  {userInitial}
-                </div>
+                <AccountAvatar
+                  displayName={accountLabel}
+                  username={profile?.username}
+                  colour={user.is_anonymous ? 'slate' : profile?.avatarColour}
+                  size="sm"
+                />
               </button>
               {userMenu && (
-                <div className="absolute right-0 z-50 mt-2 w-44 rounded-lg border border-rule bg-panel-raised p-1">
-                  <div className="truncate border-b border-rule px-3 py-2 text-sm text-muted">
-                    {user.is_anonymous ? t('login.guest') : user.user_metadata?.name || user.email}
+                <div className="absolute right-0 z-50 mt-2 w-64 rounded-lg border border-rule bg-panel-raised p-1">
+                  <div className="border-b border-rule px-3 py-3">
+                    <div className="truncate text-sm font-semibold text-foreground">{accountLabel}</div>
+                    {!user.is_anonymous && profile?.username && (
+                      <div className="mt-1 truncate font-mono text-[10px] text-faint">@{profile.username}</div>
+                    )}
+                    {profile?.wasedaVerified && (
+                      <div className="mt-2"><WasedaVerifiedBadge compact /></div>
+                    )}
                   </div>
                   <Link
-                    href="/account/delete"
+                    href="/account/"
                     onClick={() => setUserMenu(false)}
                     className="block w-full rounded-md px-3 py-2 text-left text-sm text-muted hover:bg-rule hover:text-foreground"
                   >

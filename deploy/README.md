@@ -58,6 +58,56 @@ deploy/scripts/grant-community-moderator.sh CONFIRMED_USER_UUID owner
 The role opens `/community/moderation/` and enables topic and reply moderation.
 Deleting that RunIPS account also removes its Community role.
 
+## Google accounts and Community profiles
+
+Community posting uses a persistent Google identity, while anonymous accounts
+remain available for supervisor reviews. Existing anonymous accounts must use
+the in-app **Upgrade with Google** action; Auth manual linking preserves their
+UUID and linked reviews.
+
+Create a Google OAuth 2.0 Web application and configure these exact public
+endpoints for the current deployment:
+
+```text
+Authorised JavaScript origin:
+https://runips.43.159.51.15.sslip.io
+
+Authorised redirect URI:
+https://api.runips.43.159.51.15.sslip.io/auth/v1/callback
+```
+
+Store the credentials only in the backend `.env` and keep that file mode `600`:
+
+```text
+GOOGLE_ENABLED=true
+GOOGLE_CLIENT_ID=replace-with-google-client-id
+GOOGLE_SECRET=replace-with-google-client-secret
+MANUAL_LINKING_ENABLED=true
+```
+
+`API_EXTERNAL_URL` must remain the public Auth base URL ending in `/auth/v1`.
+`SITE_URL` must be the frontend origin, and `ADDITIONAL_REDIRECT_URLS` must
+allow the frontend account route (the current deployment may use
+`https://runips.43.159.51.15.sslip.io/**`). After changing Auth configuration,
+recreate only the Auth container and verify that the named variables reached it
+without printing the client secret.
+
+The frontend release must be built with:
+
+```text
+NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true
+```
+
+This value is compiled into the static JavaScript at build time. Changing it on
+the server without rebuilding the frontend has no effect.
+
+RunIPS does not import or hotlink the Google profile photo. Community avatars
+are generated locally from the public display name and a selected colour, so
+the Storage and imgproxy services remain disabled. The `waseda-verified` badge
+is derived server-side only when the Google identity contains a verified
+Waseda-domain email and a matching Google Workspace hosted-domain (`hd`) claim.
+It does not assert current student, staff, alumni or IPS status.
+
 Restore into an empty database with `pg_restore --clean --if-exists`. Never
 commit the backend `.env`; it contains the PostgreSQL password and signing keys.
 
