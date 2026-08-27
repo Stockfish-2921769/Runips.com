@@ -30,13 +30,6 @@ export default function ReviewPrivacyNotice({
     };
   }, [onClose]);
 
-  const protections = [
-    t('review.privacyNotice.publicAnonymous'),
-    t('review.privacyNotice.dimensionsOptional'),
-    t('review.privacyNotice.commentOptional'),
-    t('review.privacyNotice.limit'),
-  ];
-
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-black/80 px-4 py-8"
@@ -70,17 +63,11 @@ export default function ReviewPrivacyNotice({
         </div>
 
         <div className="px-5 py-6 sm:px-6">
-          <p className="text-sm leading-7 text-muted">{t('review.privacyNotice.intro')}</p>
-          <ol className="mt-5 space-y-3">
-            {protections.map((protection, index) => (
-              <li key={protection} className="flex gap-3 rounded-lg border border-rule bg-background/55 p-3 text-xs leading-6 text-muted">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-violet/40 bg-violet/10 font-mono text-[9px] text-violet-300">
-                  {index + 1}
-                </span>
-                <span>{protection}</span>
-              </li>
-            ))}
-          </ol>
+          {/* One paragraph rather than a numbered list. This dialog stands
+              between someone and the thing they came to do, and a four-item
+              checklist is read by nobody — which defeats the point of showing
+              it at all. */}
+          <p className="text-sm leading-7 text-muted">{t('review.privacyNotice.body')}</p>
 
           <p className="mt-5 text-[11px] leading-6 text-faint">
             {t('review.privacyNotice.readMore')}{' '}
