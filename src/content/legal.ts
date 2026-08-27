@@ -63,7 +63,7 @@ const zhPrivacy: LegalDocumentContent = {
     {
       title: '4. 公开展示、匿名边界与自动处理',
       bullets: [
-        '公开评价可能显示评分、是否愿意再次选择、标签、发布时间、你主动公开的背景项和自愿填写的评论；公开视图不包含姓名、邮箱、账号 ID 或内部用户 ID。',
+        '公开评价可能显示评分、是否愿意再次选择、标签、发布时间和自愿填写的评论；公开视图不包含姓名、邮箱、账号 ID 或内部用户 ID。',
         '交流中心的主题标题、正文、分类、标签、状态、回复和时间信息会向全球互联网公开，可被阅读、链接或复制。你的公开用户名、昵称、首字母头像及颜色、加入月份、主题与回复数量和账号标识也会显示在主题、回复或公开个人页面。公开视图不显示邮箱、Google 姓名或头像、OAuth 数据及内部账号 ID；订阅和站内通知只对相关账号和获授权运营人员可见。',
         '`waseda-verified` 只表示该账号通过 Google 登录时提供了已验证的早稻田域名邮箱，并带有相符的 Google Workspace 托管域名声明。它不表示早稻田大学或 IPS 认可该账号，也不证明持有人目前的在读、任职、校友或其他关系。',
         '少数获授权的 RunIPS 运营人员可能为运维、备份、安全调查、审核、举报或权利请求访问内部记录。Contact 反馈只进入私有收件箱。',
@@ -161,7 +161,7 @@ const zhTerms: LegalDocumentContent = {
         '不得提交虚假或误导内容、未经证实的严重指控、人身攻击、威胁、骚扰、仇恨或歧视内容、外貌评价、违法内容、广告或垃圾信息。',
         '不得披露自己或他人的姓名、学号、联系方式、健康信息、精确行程、未公开研究、账号凭证、第三方机密信息或私人聊天原文。除非你有权提交且不侵害他人权利，否则不得复制群聊、邮件或私信。',
         '如未来启用群聊知识整理，RunIPS 只会从私有短期暂存中发布经去识别化改写且人工复核的问答，不会发布原聊天或发送者标识。具体处理将在启用前按《隐私保护说明》公开；本条不表示该功能已经提供。',
-        '三个背景项需要主动选择，并可选择“不公开”。文字评论完全可选，可为 0–2000 字。',
+        '六项详细评价中，任何一项都可以选择“不适用”，该项不会被保存分数，也不计入统计。文字评论完全可选，可为 0–2000 字。',
       ],
     },
     {
@@ -245,7 +245,7 @@ const enPrivacy: LegalDocumentContent = {
     {
       title: '4. Public display, anonymity limits, and automation',
       bullets: [
-        'A public review may show ratings, the choose-again answer, tags, posting time, context you actively disclose, and a voluntary comment. The public view omits your name, email address, account ID, and internal user ID.',
+        'A public review may show ratings, the choose-again answer, tags, posting time, and a voluntary comment. The public view omits your name, email address, account ID, and internal user ID.',
         'Community topic titles, bodies, categories, tags, statuses, replies, and timestamps are public worldwide and may be read, linked to, or copied. Your public username, display name, locally generated initial avatar and colour, joining month, topic and reply counts, and account badges also appear on contributions or the public member page. Public views omit email, Google name or photo, OAuth data, and internal account IDs. Subscriptions and in-site notifications are visible only to the relevant account and authorised operators.',
         'The `waseda-verified` badge means only that Google sign-in supplied a verified Waseda-domain email address together with a matching Google Workspace hosted-domain claim. It does not mean that Waseda University or IPS endorses the account, and it does not prove current student, staff, alumni, or other status.',
         'A small number of authorised RunIPS operators may access internal records for operations, backups, security investigations, moderation, reports, or rights requests. Contact submissions go only to a private inbox.',
@@ -343,7 +343,7 @@ const enTerms: LegalDocumentContent = {
         'Do not submit false or misleading material, unverified serious allegations, personal attacks, threats, harassment, hateful or discriminatory content, appearance comments, unlawful material, advertising, or spam.',
         'Do not disclose your own or another person’s name, student number, contact details, health data, exact movements, unpublished research, account credentials, confidential information, or private-chat text. Do not copy a group chat, email, or direct message unless you have the right to submit it and doing so does not infringe another person’s rights.',
         'If a group-chat knowledge project is introduced later, RunIPS will publish only anonymised, rewritten Q&A that has passed human review after restricted, short-term private staging, never raw chat or sender identifiers. The processing detail will be published in the Privacy Notice before launch; this term does not mean that the feature is already available.',
-        'Each context field requires an active choice, including “Not disclosed”. A written comment is entirely optional and may contain 0–2,000 characters.',
+        'Any of the six detailed ratings can be marked “Not applicable”, in which case no score is stored for it and it enters no statistic. A written comment is entirely optional and may contain 0–2,000 characters.',
       ],
     },
     {
