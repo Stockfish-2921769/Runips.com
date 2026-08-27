@@ -258,7 +258,8 @@ const zh = {
       // 四条编号列表压成一段。原来的第二条讲「不适用」，那是评分功能不是隐私
       // 事项，放在这里只会稀释真正需要读的两句：你自己写的内容才是暴露源，
       // 以及公开匿名并非绝对不可识别。
-      body: '公开的评价不会显示你的姓名、邮箱或账号信息。最容易暴露身份的其实是你自己写的内容——若填写文字评论，请避开精确日期、具体研究方向等细节。也请知悉：公开匿名不等于绝对不可识别，授权管理员、服务器日志或依法处理的请求仍可能涉及内部数据。',
+      body: '公开的评价不会显示你的姓名、邮箱或账号信息。最容易暴露身份的其实是你自己写的内容，若填写文字评论，请避开精确日期、具体研究方向等细节。',
+      conduct: '敬请留意，友善和真实的评价对于维护社区非常重要，请尽可能避免人身攻击、恶意造谣和不实内容。RunIPS 保留在最小范围内删除恶意评论的权利。',
       readMore: '继续前可阅读完整说明：',
       cancel: '暂不评价',
       continue: '我已了解，继续评价',
@@ -273,7 +274,7 @@ const zh = {
       overallDesc: '综合考虑研究指导、沟通方式和实验室体验。',
       pressureDesc: '这里只描述压力大小；高分不等于好或坏。',
       dimensionsSection: '详细评价',
-      dimensionsHint: '请根据自己的实际研究经历评价。若某一项你没有接触过、无法判断（例如你并非实验室核心成员），请选择「不适用」——该项不会计入平均分。',
+      dimensionsHint: '请根据自己的实际研究经历评价。若某一项你没有接触过、无法判断（例如你并非实验室核心成员），请选择「不适用」，该项不会计入平均分。',
       notApplicable: '不适用',
       tagsSection: '选择标签',
       tagsHint: '最多选择三个最能概括这位导师或研究室的标签。',
@@ -579,7 +580,8 @@ const en: typeof zh = {
       eyebrow: 'Before you submit',
       title: 'Understand the privacy boundary',
       close: 'Close privacy notice',
-      body: 'A published review shows no name, email or account information. What most often identifies a reviewer is their own wording, so if you write a comment, leave out exact dates, your specific research topic and similar detail. Public anonymity is not the same as being unidentifiable: authorised moderators, server logs and lawful requests can still involve internal data.',
+      body: 'A published review shows no name, email or account information. What most often identifies a reviewer is their own wording, so if you write a comment, leave out exact dates, your specific research topic and similar detail.',
+      conduct: 'Please keep in mind that kind and truthful reviews are what hold this community together. Avoid personal attacks, malicious rumour and false claims. RunIPS reserves the right to remove malicious content, and will use that right as sparingly as possible.',
       readMore: 'Read the full documents before continuing:',
       cancel: 'Do not rate now',
       continue: 'I understand — continue',
